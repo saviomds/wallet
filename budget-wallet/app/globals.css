@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/* Tell Tailwind v4 to use the class-based dark mode strategy */
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #f3f4f6; /* Soft light gray so white cards pop */
+  --foreground: #111827; /* Rich dark text for readability */
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* Apply dark variables when the .dark class is active, and set the scrollbar to dark */
+.dark {
+  --background: #111827; /* Deep modern gray that contrasts perfectly with dark:bg-gray-800 */
+  --foreground: #f9fafb; /* Crisp off-white text */
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
