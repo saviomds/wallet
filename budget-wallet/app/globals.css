@@ -4,21 +4,30 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f3f4f6; /* Soft light gray so white cards pop */
-  --foreground: #111827; /* Rich dark text for readability */
+  --background: #f8f9fa;
+  --foreground: #0f172a;
+  --card-bg: rgba(255, 255, 255, 0.6);
+  --card-border: rgba(0, 0, 0, 0.05);
+  --accent-color: #D4AF37; /* Classic Gold */
+  --accent-hover: #b5952f;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent-color);
+  --color-accent-hover: var(--accent-hover);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-/* Apply dark variables when the .dark class is active, and set the scrollbar to dark */
 .dark {
-  --background: #111827; /* Deep modern gray that contrasts perfectly with dark:bg-gray-800 */
-  --foreground: #f9fafb; /* Crisp off-white text */
+  --background: #050505; /* Deep OLED Black for futuristic contrast */
+  --foreground: #f8fafc;
+  --card-bg: rgba(20, 20, 20, 0.5);
+  --card-border: rgba(255, 255, 255, 0.08);
   color-scheme: dark;
 }
 
@@ -26,4 +35,36 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  transition: background-color 0.6s ease, color 0.6s ease;
+  background-image: radial-gradient(circle at 50% 0%, var(--card-bg) 0%, transparent 60%);
+}
+
+/* Futuristic Finance Utilities */
+.glass-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--card-border);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.04);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 1.25rem;
+}
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08);
+  border-color: var(--accent-color);
+}
+
+.minimal-input {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--card-border);
+  border-radius: 0;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+}
+.minimal-input:focus {
+  outline: none;
+  border-bottom-color: var(--accent-color);
+  box-shadow: 0 6px 10px -6px var(--accent-color);
 }

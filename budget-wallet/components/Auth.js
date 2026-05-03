@@ -32,39 +32,43 @@ export default function Auth() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md text-black dark:text-white border border-gray-100 dark:border-gray-700">
-      <h2 className="text-2xl font-bold text-center mb-6">{isLogin ? 'Log In' : 'Sign Up'}</h2>
-      <form onSubmit={handleAuth} className="space-y-4">
+    <div className="max-w-md mx-auto mt-10 p-10 glass-card text-center">
+      <h1 className="text-4xl font-extrabold mb-2 tracking-tight text-foreground">
+        Budget <span className="text-accent drop-shadow-sm">Wallet</span>
+      </h1>
+      <h2 className="text-sm font-bold tracking-widest uppercase text-gray-500 mb-8 border-b border-card-border pb-6">{isLogin ? 'Secure Access' : 'Initialize Account'}</h2>
+      
+      <form onSubmit={handleAuth} className="space-y-6 text-left">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 p-2 rounded mt-1"
-            placeholder="you@example.com"
+            className="minimal-input p-2 w-full"
+            placeholder="portal@secure.com"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
+          <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Authentication Key</label>
           <input
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 p-2 rounded mt-1"
+            className="minimal-input p-2 w-full"
             placeholder="••••••••"
           />
         </div>
         {message && <p className={`text-sm text-center ${message.includes('successful') ? 'text-green-600' : 'text-red-600'}`}>{message}</p>}
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white p-2 rounded font-medium transition-colors">
-          {loading ? 'Processing...' : isLogin ? 'Log In' : 'Sign Up'}
+        <button type="submit" disabled={loading} className="w-full bg-accent hover:bg-accent-hover text-white dark:text-black py-3 rounded-full font-bold tracking-widest text-xs uppercase transition-all duration-300 shadow-lg shadow-accent/20 mt-4">
+          {loading ? 'Authenticating...' : isLogin ? 'Access Wallet' : 'Create Credentials'}
         </button>
       </form>
-      <p className="text-sm text-center mt-4 text-gray-600 dark:text-gray-400">
-        {isLogin ? "Don't have an account? " : "Already have an account? "}
-        <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+      <p className="text-[10px] uppercase tracking-widest text-center mt-8 text-gray-500">
+        {isLogin ? "No credentials? " : "Existing access? "}
+        <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-accent hover:text-accent-hover font-bold ml-1 transition-colors">
           {isLogin ? 'Sign up' : 'Log in'}
         </button>
       </p>

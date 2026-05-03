@@ -37,8 +37,8 @@ export default function CategoryChart({ transactions = [] }) {
       {
         label: 'Total Spent',
         data: sortedCategories.map((cat) => categoryTotals[cat]),
-        backgroundColor: '#3b82f6', // Tailwind blue-500
-        borderRadius: 4,
+        backgroundColor: '#D4AF37', // Gold 
+        borderRadius: 2,
       },
     ],
   };

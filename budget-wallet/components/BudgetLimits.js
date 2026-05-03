@@ -10,7 +10,8 @@ export default function BudgetLimits({ transactions = [], currency = 'MUR', exch
   const [editAmount, setEditAmount] = useState('');
 
   useEffect(() => {
-    setBudgets(initialBudgets || {});
+    const timer = setTimeout(() => setBudgets(initialBudgets || {}), 0);
+    return () => clearTimeout(timer);
   }, [initialBudgets]);
 
   const handleSave = async (e) => {
@@ -64,23 +65,23 @@ export default function BudgetLimits({ transactions = [], currency = 'MUR', exch
   const budgetCategories = Object.keys(budgets);
 
   return (
-    <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow text-black dark:text-white border-t-4 border-yellow-500">
-      <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2">
-        <h2 className="text-lg font-bold">Category Budgets</h2>
+    <div className="glass-card p-6">
+      <div className="flex justify-between items-center mb-6 border-b border-card-border pb-3">
+        <h2 className="text-xs font-bold tracking-widest uppercase text-gray-500">Category Budgets</h2>
         {!isEditing && (
-          <button onClick={() => setIsEditing(true)} className="text-xs text-yellow-600 dark:text-yellow-500 hover:underline font-semibold">+ Add Limit</button>
+          <button onClick={() => setIsEditing(true)} className="text-[10px] text-accent hover:text-accent-hover uppercase tracking-widest font-bold transition-colors">+ Add Limit</button>
         )}
       </div>
 
       {isEditing && (
-        <form onSubmit={handleSave} className="flex flex-col space-y-2 mb-4 bg-gray-50 dark:bg-gray-700 p-3 rounded-md border dark:border-gray-600">
-          <div className="flex flex-col md:flex-row gap-2">
-            <input type="text" required value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="Category (e.g. Food)" className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white p-2 rounded outline-none text-sm" />
-            <input type="number" step="0.01" min="0" required value={editAmount} onChange={(e) => setEditAmount(e.target.value)} placeholder="Limit amount" className="flex-1 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white p-2 rounded outline-none text-sm" />
+        <form onSubmit={handleSave} className="flex flex-col space-y-4 mb-6 bg-card border border-card-border p-4 rounded-xl">
+          <div className="flex flex-col md:flex-row gap-4">
+            <input type="text" required value={editCategory} onChange={(e) => setEditCategory(e.target.value)} placeholder="Category (e.g. Food)" className="minimal-input p-2 flex-1 text-sm" />
+            <input type="number" step="0.01" min="0" required value={editAmount} onChange={(e) => setEditAmount(e.target.value)} placeholder="Limit amount" className="minimal-input p-2 flex-1 text-sm" />
           </div>
-          <div className="flex justify-end space-x-2 mt-2">
-            <button type="button" onClick={() => setIsEditing(false)} className="bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-white px-3 py-1.5 rounded transition-colors text-sm">Cancel</button>
-            <button type="submit" className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1.5 rounded transition-colors text-sm font-medium">Save</button>
+          <div className="flex justify-end space-x-3 mt-2">
+            <button type="button" onClick={() => setIsEditing(false)} className="text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-foreground transition-colors px-3 py-2">Cancel</button>
+            <button type="submit" className="bg-accent hover:bg-accent-hover text-white dark:text-black px-5 py-2 rounded-full transition-all text-[10px] uppercase tracking-widest font-bold shadow-md">Save</button>
           </div>
         </form>
       )}
@@ -96,21 +97,21 @@ export default function BudgetLimits({ transactions = [], currency = 'MUR', exch
             const isOver = spent >= limit;
             const isWarning = progress >= 80 && !isOver;
 
-            let colorClass = 'bg-green-500';
+            let colorClass = 'bg-accent';
             if (isOver) colorClass = 'bg-red-500';
-            else if (isWarning) colorClass = 'bg-yellow-500';
+            else if (isWarning) colorClass = 'bg-orange-400';
 
             return (
               <div key={cat} className="space-y-1">
                 <div className="flex justify-between items-end text-sm">
-                  <span className="font-semibold text-gray-800 dark:text-gray-200">
-                    {cat} <button onClick={() => handleDelete(cat)} className="text-red-500 hover:text-red-700 ml-1 text-xs opacity-50 hover:opacity-100" title="Remove budget">✕</button>
+                  <span className="font-bold text-foreground">
+                    {cat} <button onClick={() => handleDelete(cat)} className="text-gray-400 hover:text-red-500 ml-2 text-xs transition-colors" title="Remove budget">✕</button>
                   </span>
-                  <span className="text-xs text-gray-600 dark:text-gray-400">
-                    <span className={isOver ? 'text-red-600 dark:text-red-400 font-bold' : ''}>{formatAmount(spent)}</span> / {formatAmount(limit)}
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    <span className={isOver ? 'text-red-500' : 'text-foreground'}>{formatAmount(spent)}</span> / {formatAmount(limit)}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                <div className="w-full bg-card border border-card-border rounded-full h-1.5 overflow-hidden">
                   <div className={`h-2.5 rounded-full transition-all duration-500 ${colorClass}`} style={{ width: `${progress}%` }}></div>
                 </div>
               </div>
