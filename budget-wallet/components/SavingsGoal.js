@@ -52,10 +52,12 @@ export default function SavingsGoal({ currentBalance, currency = 'MUR', exchange
       </div>
 
       {isEditing ? (
-        <form onSubmit={handleSave} className="flex items-center space-x-3 mb-2">
-          <input type="number" step="0.01" min="0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Target Amount" className="minimal-input p-2 flex-1" autoFocus />
-          <button type="submit" className="bg-accent hover:bg-accent-hover text-white dark:text-black px-4 py-2 rounded-full transition-all text-[10px] uppercase tracking-widest font-bold shadow-md">Save</button>
-          <button type="button" onClick={() => setIsEditing(false)} className="text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-foreground transition-colors">Cancel</button>
+        <form onSubmit={handleSave} className="flex flex-col sm:flex-row items-center gap-3 mb-2">
+          <input type="number" step="0.01" min="0" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="Target Amount" className="minimal-input p-2 w-full sm:flex-1" autoFocus />
+          <div className="flex w-full sm:w-auto gap-3">
+            <button type="submit" className="flex-1 sm:flex-none bg-accent hover:bg-accent-hover text-white dark:text-black px-4 py-2 rounded-full transition-all text-[10px] uppercase tracking-widest font-bold shadow-md">Save</button>
+            <button type="button" onClick={() => setIsEditing(false)} className="flex-1 sm:flex-none text-[10px] uppercase tracking-widest font-bold text-gray-400 hover:text-foreground transition-colors">Cancel</button>
+          </div>
         </form>
       ) : goal > 0 ? (
         <div className="space-y-3">

@@ -193,10 +193,10 @@ export default function Dashboard() {
   if (!session) return <main className="min-h-screen flex flex-col justify-center p-4"><Auth /></main>;
 
   return (
-    <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+    <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-8 pb-28 sm:pb-8">
       
       {/* 1. TOP UTILITY BAR (Bank Style) */}
-      <div className="flex justify-between items-center bg-card/50 border border-card-border p-3 rounded-2xl px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 bg-card/50 border border-card-border p-3 rounded-2xl px-6 text-center sm:text-left">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
           <span className="text-[10px] font-bold uppercase tracking-tighter text-gray-400">Secure Server: Online</span>
@@ -276,7 +276,7 @@ export default function Dashboard() {
 
       {/* 5. SEARCH & FILTER TOOLBAR */}
       <div className="glass-card p-4 flex flex-col lg:flex-row gap-4 items-center bg-card/80 backdrop-blur-xl border-accent/20">
-        <div className="flex flex-1 gap-2 w-full">
+        <div className="flex flex-col sm:flex-row flex-1 gap-2 w-full">
           <input 
             type="text" 
             placeholder="Search ledger..." 
@@ -287,15 +287,17 @@ export default function Dashboard() {
           <select 
             value={currency} 
             onChange={(e) => setCurrency(e.target.value)} 
-            className="minimal-input p-3 text-xs font-bold bg-black/20"
+            className="minimal-input p-3 text-xs font-bold bg-black/20 w-full sm:w-auto"
           >
             {['MUR', 'INR', 'USD', 'EUR', 'GBP'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
-        <div className="flex gap-2 w-full lg:w-auto">
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1 lg:flex-none" />
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1 lg:flex-none" />
-          <button onClick={exportToCSV} className="bg-accent text-black font-black text-[10px] px-6 py-3 rounded-lg uppercase hover:scale-105 transition-transform">
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1" />
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1" />
+          </div>
+          <button onClick={exportToCSV} className="bg-accent text-black font-black text-[10px] px-6 py-3 rounded-lg uppercase hover:scale-105 transition-transform w-full sm:w-auto">
             Export Statement
           </button>
         </div>
@@ -304,7 +306,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* SIDEBAR */}
         <div className="lg:col-span-5 space-y-8">
-          <div className="p-[1px] bg-gradient-to-br from-accent to-transparent rounded-3xl">
+          <div id="add-transaction" className="p-[1px] bg-gradient-to-br from-accent to-transparent rounded-3xl scroll-mt-8">
             <div className="bg-background rounded-[23px]">
               <AddTransactionForm 
                 onAdded={fetchTransactions} 
@@ -326,11 +328,13 @@ export default function Dashboard() {
 
           <BudgetLimits transactions={filteredTransactions} currency={currency} exchangeRate={exchangeRates[currency] || 1} initialBudgets={settings.category_budgets} />
           <SavingsGoal currentBalance={summary.balance} currency={currency} exchangeRate={exchangeRates[currency] || 1} initialGoal={settings.savings_goal} />
-          <PayAndInvoice currency={currency} onAdded={fetchTransactions} />
+          <div id="pay-invoice" className="scroll-mt-8">
+            <PayAndInvoice currency={currency} onAdded={fetchTransactions} />
+          </div>
         </div>
 
         {/* LEDGER */}
-        <div className="lg:col-span-7">
+        <div id="ledger" className="lg:col-span-7 scroll-mt-8">
           <div className="glass-card p-0 overflow-hidden border-accent/10">
             <div className="p-6 border-b border-card-border bg-card/30">
               <h2 className="text-[10px] font-black tracking-widest uppercase text-gray-400">Master Ledger</h2>
@@ -343,17 +347,17 @@ export default function Dashboard() {
                 <div className="p-20 text-center text-[10px] font-bold uppercase tracking-widest text-gray-600">No records in vault.</div>
               ) : (
                 paginatedTransactions.map((tx) => (
-                  <div key={tx.id} className={`group flex justify-between items-center p-5 transition-colors ${editingTransaction?.id === tx.id ? 'bg-accent/10 border-l-4 border-accent' : 'hover:bg-accent/[0.02] border-l-4 border-transparent'}`}>
-                    <div className="flex gap-4 items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} ${editingTransaction?.id === tx.id ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''}`}>
+                    <div key={tx.id} className={`group flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 p-5 transition-colors ${editingTransaction?.id === tx.id ? 'bg-accent/10 border-l-4 border-accent' : 'hover:bg-accent/[0.02] border-l-4 border-transparent'}`}>
+                      <div className="flex gap-4 items-center w-full sm:w-auto">
+                        <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-xs ${tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} ${editingTransaction?.id === tx.id ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''}`}>
                         {tx.category?.charAt(0)}
                       </div>
-                      <div>
-                        <p className="font-bold text-sm uppercase tracking-tight text-foreground">{tx.category}</p>
-                        <p className="text-[10px] text-gray-500 font-medium uppercase">{getLocalDateString(new Date(tx.created_at))} • {tx.description || 'No memo'}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm uppercase tracking-tight text-foreground truncate">{tx.category}</p>
+                          <p className="text-[10px] text-gray-500 font-medium uppercase truncate">{getLocalDateString(new Date(tx.created_at))} • {tx.description || 'No memo'}</p>
                       </div>
                     </div>
-                    <div className="text-right flex items-center gap-4">
+                      <div className="w-full sm:w-auto flex justify-between sm:justify-end items-center gap-4 border-t border-card-border sm:border-0 pt-4 sm:pt-0 mt-1 sm:mt-0">
                       <div className={`font-mono text-lg ${tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
                         {tx.type === 'income' ? '+' : '-'}{formatAmount(parseFloat(tx.amount))}
                       </div>
@@ -411,6 +415,28 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-card/95 backdrop-blur-xl border-t border-card-border pt-3 pb-6 px-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        <div className="flex justify-around items-center">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center text-gray-500 hover:text-accent transition-colors">
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+            <span className="text-[9px] font-bold uppercase tracking-widest">Home</span>
+          </button>
+          <button onClick={() => document.getElementById('add-transaction')?.scrollIntoView({ behavior: 'smooth' })} className="flex flex-col items-center text-gray-500 hover:text-accent transition-colors">
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"></path></svg>
+            <span className="text-[9px] font-bold uppercase tracking-widest">Add</span>
+          </button>
+          <button onClick={() => document.getElementById('ledger')?.scrollIntoView({ behavior: 'smooth' })} className="flex flex-col items-center text-gray-500 hover:text-accent transition-colors">
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+            <span className="text-[9px] font-bold uppercase tracking-widest">Ledger</span>
+          </button>
+          <button onClick={() => document.getElementById('pay-invoice')?.scrollIntoView({ behavior: 'smooth' })} className="flex flex-col items-center text-gray-500 hover:text-accent transition-colors">
+            <svg className="w-5 h-5 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+            <span className="text-[9px] font-bold uppercase tracking-widest">Pay</span>
+          </button>
+        </div>
+      </div>
     </main>
   );
 }

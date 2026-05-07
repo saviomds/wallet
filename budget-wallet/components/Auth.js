@@ -32,7 +32,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="max-w-md mx-auto mt-10 p-10 glass-card text-center">
+    <div className="w-full max-w-md mx-auto mt-10 p-6 sm:p-10 glass-card text-center">
       <h1 className="text-4xl font-extrabold mb-2 tracking-tight text-foreground">
         Budget <span className="text-accent drop-shadow-sm">Wallet</span>
       </h1>

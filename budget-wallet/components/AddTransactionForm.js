@@ -86,12 +86,12 @@ export default function AddTransactionForm({ onAdded, editingTransaction, onCanc
         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Description</label>
         <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} className="minimal-input p-2" placeholder="Optional details..." />
       </div>
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col sm:flex-row gap-3 pt-4">
         <button type="submit" disabled={loading} className="bg-accent hover:bg-accent-hover text-white dark:text-black px-6 py-3 rounded-full w-full font-bold uppercase tracking-widest text-xs transition-all duration-300 shadow-lg shadow-accent/20">
           {loading ? 'Saving...' : editingTransaction ? 'Update Transaction' : 'Add Transaction'}
         </button>
         {editingTransaction && (
-          <button type="button" onClick={onCancelEdit} disabled={loading} className="bg-card border border-card-border hover:border-accent text-foreground px-6 py-3 rounded-full font-bold uppercase tracking-widest text-xs transition-all duration-300 w-1/3">
+          <button type="button" onClick={onCancelEdit} disabled={loading} className="bg-card border border-card-border hover:border-accent text-foreground px-6 py-3 rounded-full font-bold uppercase tracking-widest text-xs transition-all duration-300 w-full sm:w-1/3">
             Cancel
           </button>
         )}
