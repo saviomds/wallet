@@ -9,9 +9,9 @@ import TransactionChart from '../components/TransactionChart';
 import CategoryChart from '../components/CategoryChart';
 import SavingsGoal from '../components/SavingsGoal';
 import BudgetLimits from '../components/BudgetLimits';
+import PayAndInvoice from '../components/PayAndInvoice';
 import { supabase } from '../lib/supabase';
 
-// Helper to grab standard YYYY-MM-DD from user's local timezone
 const getLocalDateString = (date) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
@@ -22,7 +22,6 @@ export default function Dashboard() {
   const [settings, setSettings] = useState({ savings_goal: 0, category_budgets: {} });
   const [loading, setLoading] = useState(true);
   
-  // New Advanced Filtering States
   const [startDate, setStartDate] = useState(() => {
     const now = new Date();
     return getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -34,25 +33,18 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [editingTransaction, setEditingTransaction] = useState(null);
-
   const [currency, setCurrency] = useState('MUR');
   const [exchangeRates, setExchangeRates] = useState({});
+  const [transactionToDelete, setTransactionToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const ITEMS_PER_PAGE = 5;
 
-  // Reset to page 1 whenever filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [startDate, endDate, searchQuery]);
-
-  // Fetch live exchange rates on mount
   useEffect(() => {
     fetch('https://open.er-api.com/v6/latest/MUR')
       .then((res) => res.json())
       .then((data) => {
-        if (data && data.rates) {
-          setExchangeRates(data.rates);
-        }
+        if (data && data.rates) setExchangeRates(data.rates);
       })
       .catch((err) => console.error('Error fetching rates:', err));
   }, []);
@@ -66,13 +58,9 @@ export default function Dashboard() {
     }).format(converted);
   };
 
-  // Multi-layered filtering logic
   const filteredTransactions = transactions.filter((tx) => {
     if (!tx.created_at) return false;
-    
-    // Convert database UTC to user's local date string before comparing
     const txDate = getLocalDateString(new Date(tx.created_at));
-    
     if (startDate && txDate < startDate) return false;
     if (endDate && txDate > endDate) return false;
     if (searchQuery) {
@@ -83,8 +71,35 @@ export default function Dashboard() {
   });
 
   const summary = getSummary(filteredTransactions);
+  const overallSummary = getSummary(transactions);
 
-  // Pagination logic
+  const calculateCreditScore = (stats) => {
+    let score = 650; // Base start score
+    if (stats.balance > 1000) score += 30;
+    if (stats.balance > 5000) score += 40;
+    if (stats.balance > 10000) score += 50;
+    
+    if (stats.income > 0) {
+        const savingRatio = (stats.income - stats.expenses) / stats.income;
+        if (savingRatio > 0.5) score += 60;
+        else if (savingRatio > 0.2) score += 30;
+        else if (savingRatio < 0) score -= 50;
+    }
+    return Math.min(Math.max(Math.floor(score), 300), 850);
+  };
+
+  const creditScore = calculateCreditScore(overallSummary);
+
+  const getCreditScoreRating = (score) => {
+    if (score >= 750) return { label: 'EXCELLENT', color: 'text-emerald-500' };
+    if (score >= 700) return { label: 'GOOD', color: 'text-emerald-500' };
+    if (score >= 650) return { label: 'FAIR', color: 'text-yellow-500' };
+    if (score >= 600) return { label: 'POOR', color: 'text-orange-500' };
+    return { label: 'BAD', color: 'text-rose-500' };
+  };
+
+  const rating = getCreditScoreRating(creditScore);
+
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
   const paginatedTransactions = filteredTransactions.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -106,237 +121,296 @@ export default function Dashboard() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this transaction?')) return;
-    
+  const handleDelete = (id) => {
+    setTransactionToDelete(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!transactionToDelete) return;
+    setIsDeleting(true);
     try {
-      await deleteTransaction(id);
-      fetchTransactions(); // Refresh the list and balances
+      await deleteTransaction(transactionToDelete);
+      fetchTransactions();
     } catch (error) {
-      alert('Failed to delete transaction. Please try again.');
+      alert('Action failed.');
+    } finally {
+      setTransactionToDelete(null);
+      setIsDeleting(false);
     }
   };
 
   const exportToCSV = () => {
-    if (filteredTransactions.length === 0) return alert('No data to export!');
+    if (filteredTransactions.length === 0) {
+      alert('No transactions to export for the selected period.');
+      return;
+    }
+
+    const headers = ['Date', 'Category', 'Description', 'Type', 'Amount'];
     
-    const headers = ['Date', 'Type', 'Category', 'Description', 'Amount'];
-    const rows = filteredTransactions.map(tx => [
-      getLocalDateString(new Date(tx.created_at)),
-      tx.type,
-      `"${tx.category || ''}"`,
-      `"${tx.description || ''}"`,
-      tx.amount
-    ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const escapeCSV = (str) => {
+      if (str === null || str === undefined) return '';
+      const string = String(str);
+      if (string.includes(',') || string.includes('"') || string.includes('\n')) {
+        return `"${string.replace(/"/g, '""')}"`;
+      }
+      return string;
+    };
+
+    const rows = filteredTransactions.map(tx => 
+      [
+        getLocalDateString(new Date(tx.created_at)),
+        escapeCSV(tx.category),
+        escapeCSV(tx.description),
+        escapeCSV(tx.type),
+        tx.amount
+      ].join(',')
+    );
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'budget_export.csv';
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `budget_statement_${getLocalDateString(new Date())}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
   useEffect(() => {
-    // Check current session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) fetchTransactions();
     });
-
-    // Listen for auth changes (login/logout)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       if (session) fetchTransactions();
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
-  if (!session) {
-    return (
-      <main className="min-h-screen flex flex-col justify-center p-4">
-        <Auth />
-      </main>
-    );
-  }
+  if (!session) return <main className="min-h-screen flex flex-col justify-center p-4"><Auth /></main>;
 
   return (
-    <main className="max-w-6xl mx-auto p-4 md:p-8 space-y-8 md:space-y-10">
-      {/* Header: Centered, Symmetrical, Futuristic */}
-      <div className="flex flex-col items-center justify-center mt-8 mb-12 gap-6">
-        <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-foreground text-center">
-          Budget <span className="text-accent drop-shadow-sm">Wallet</span>
-        </h1>
-        <div className="flex flex-wrap justify-center items-center gap-4">
+    <main className="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+      
+      {/* 1. TOP UTILITY BAR (Bank Style) */}
+      <div className="flex justify-between items-center bg-card/50 border border-card-border p-3 rounded-2xl px-6">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+          <span className="text-[10px] font-bold uppercase tracking-tighter text-gray-400">Secure Server: Online</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <a 
+            href="https://beoneofus.work" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-[10px] font-bold text-accent hover:underline uppercase tracking-widest"
+          >
+            Connect Account
+          </a>
           <ThemeToggle />
-          <button onClick={() => supabase.auth.signOut()} className="bg-card border border-card-border hover:border-accent text-foreground px-6 py-2 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all duration-300 shadow-sm">
-            Sign Out
-          </button>
         </div>
       </div>
 
-      {/* Control Panel: Filters, Search, and Export */}
-      <div className="glass-card p-6 flex flex-col lg:flex-row gap-6 justify-between items-center w-full">
-        <div className="flex flex-wrap justify-center lg:justify-start items-center gap-4 w-full lg:w-auto">
-          <div className="flex flex-col items-center lg:items-start w-full sm:w-auto">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">From</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="minimal-input p-2 w-full sm:w-auto text-sm text-center lg:text-left" />
+      {/* 2. MAIN BRANDING */}
+      <div className="flex flex-col items-center justify-center py-6">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-foreground text-center uppercase">
+          <span className="text-accent">B1Overs</span>Wallet
+        </h1>
+        <p className="text-gray-500 text-[10px] tracking-[0.3em] font-bold uppercase mt-2">Institutional Grade B1Overs Finance</p>
+      </div>
+
+      {/* 3. QUICK ACTIONS & PARTNER LINK */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <a 
+          href="https://beoneofus.work" 
+          target="_blank" 
+          className="glass-card p-6 flex items-center justify-between group hover:border-accent transition-all"
+        >
+          <div>
+            <h4 className="text-xs font-bold uppercase text-accent mb-1">Global Network</h4>
+            <p className="text-sm text-gray-400">Join beoneofus.work</p>
           </div>
-          <div className="flex flex-col items-center lg:items-start w-full sm:w-auto">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">To</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="minimal-input p-2 w-full sm:w-auto text-sm text-center lg:text-left" />
+          <div className="p-3 rounded-full bg-accent/10 text-accent group-hover:bg-accent group-hover:text-black transition-all">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 7l5 5m0 0l-5 5m5-5H6"></path></svg>
           </div>
-          <div className="flex flex-col items-center lg:items-start w-full sm:w-auto flex-1 min-w-[150px]">
-            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Search</label>
-            <input type="text" placeholder="Category or keyword..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="minimal-input p-2 w-full sm:w-auto text-sm text-center lg:text-left" />
+        </a>
+
+        <div className="glass-card p-6 flex items-center justify-between border-l-4 border-l-purple-500">
+          <div>
+            <h4 className="text-xs font-bold uppercase text-gray-500 mb-1">Credit Score</h4>
+            <p className="text-xl font-light">{creditScore} <span className={`text-[10px] font-bold ${rating.color}`}>{rating.label}</span></p>
           </div>
+          <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
         </div>
-        <div className="flex flex-wrap justify-center lg:justify-end gap-3 w-full lg:w-auto items-end">
+
+        <button onClick={() => supabase.auth.signOut()} className="glass-card p-6 flex items-center justify-between hover:bg-rose-500/5 group transition-all">
+          <div>
+            <h4 className="text-xs font-bold uppercase text-gray-500 mb-1">Session</h4>
+            <p className="text-sm text-rose-500 group-hover:font-bold">Terminate Connection</p>
+          </div>
+          <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+        </button>
+      </div>
+
+      {/* 4. TOTALS SECTION */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { label: 'Net Liquidity', val: summary.balance, color: 'accent' },
+          { label: 'Total Inflow', val: summary.income, color: 'emerald-500', prefix: '+' },
+          { label: 'Total Outflow', val: summary.expenses, color: 'rose-500', prefix: '-' },
+          { label: 'Top Liability', val: summary.biggestCategoryAmount, color: 'purple-500', sub: summary.biggestCategory }
+        ].map((item, i) => (
+          <div key={i} className="glass-card p-6 relative overflow-hidden">
+            <div className={`absolute top-0 left-0 w-1 h-full bg-${item.color}`}></div>
+            <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-2">{item.label}</h3>
+            <p className={`text-xl md:text-2xl font-light ${item.prefix === '-' ? 'text-rose-500' : item.prefix === '+' ? 'text-emerald-500' : ''}`}>
+              {item.prefix}{formatAmount(item.val)}
+            </p>
+            {item.sub && <p className="text-[9px] text-gray-400 uppercase mt-1 truncate">{item.sub}</p>}
+          </div>
+        ))}
+      </div>
+
+      {/* 5. SEARCH & FILTER TOOLBAR */}
+      <div className="glass-card p-4 flex flex-col lg:flex-row gap-4 items-center bg-card/80 backdrop-blur-xl border-accent/20">
+        <div className="flex flex-1 gap-2 w-full">
+          <input 
+            type="text" 
+            placeholder="Search ledger..." 
+            value={searchQuery} 
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="minimal-input flex-1 p-3 text-xs uppercase font-bold tracking-widest bg-black/20"
+          />
           <select 
             value={currency} 
             onChange={(e) => setCurrency(e.target.value)} 
-            className="minimal-input p-2 text-sm cursor-pointer w-full sm:w-auto text-center lg:text-left appearance-none"
+            className="minimal-input p-3 text-xs font-bold bg-black/20"
           >
-            <option value="MUR">MUR (Rs)</option>
-            <option value="INR">INR (₹)</option>
-            <option value="USD">USD ($)</option>
-            <option value="EUR">EUR (€)</option>
-            <option value="CHF">CHF (Fr)</option>
-            <option value="GBP">GBP (£)</option>
-            <option value="RWF">RWF (FRw)</option>
+            {['MUR', 'INR', 'USD', 'EUR', 'GBP'].map(c => <option key={c} value={c}>{c}</option>)}
           </select>
-          <button onClick={() => { setStartDate(''); setEndDate(''); setSearchQuery(''); }} className="bg-card border border-card-border hover:border-accent text-foreground px-6 py-2 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all w-full sm:w-auto">
-            Clear
+        </div>
+        <div className="flex gap-2 w-full lg:w-auto">
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1 lg:flex-none" />
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="minimal-input p-3 text-[10px] flex-1 lg:flex-none" />
+          <button onClick={exportToCSV} className="bg-accent text-black font-black text-[10px] px-6 py-3 rounded-lg uppercase hover:scale-105 transition-transform">
+            Export Statement
           </button>
-          <button onClick={exportToCSV} className="bg-accent hover:bg-accent-hover text-white dark:text-black px-6 py-2 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all shadow-md shadow-accent/20 w-full sm:w-auto">
-            Export CSV
-          </button>
-        </div>
-      </div>
-      
-      {/* Section 2: Dashboard (Balances) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-        <div className="glass-card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-1 bg-accent opacity-50 group-hover:opacity-100 transition-opacity"></div>
-          <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Total Balance</h3>
-          <p className="text-2xl md:text-3xl font-light text-foreground">{formatAmount(summary.balance)}</p>
-        </div>
-        <div className="glass-card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-          <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Total Income</h3>
-          <p className="text-2xl md:text-3xl font-light text-emerald-500">+{formatAmount(summary.income)}</p>
-        </div>
-        <div className="glass-card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-1 bg-rose-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-          <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Total Expenses</h3>
-          <p className="text-2xl md:text-3xl font-light text-rose-500">-{formatAmount(summary.expenses)}</p>
-        </div>
-        <div className="glass-card p-6 flex flex-col items-center justify-center text-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-1 bg-purple-500 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-          <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3">Top Expense</h3>
-          {summary.biggestCategory ? (
-            <>
-              <p className="text-xl md:text-2xl font-light text-purple-500 truncate w-full" title={summary.biggestCategory}>{summary.biggestCategory}</p>
-              <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-1">-{formatAmount(summary.biggestCategoryAmount)}</p>
-            </>
-          ) : (
-            <p className="text-2xl md:text-3xl font-light text-gray-500">-</p>
-          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 md:gap-8">
-        {/* Left Column: Form & Analytics */}
-        <div className="lg:col-span-5 space-y-6 md:space-y-8">
-          <AddTransactionForm 
-            onAdded={fetchTransactions} 
-            editingTransaction={editingTransaction} 
-            onCancelEdit={() => setEditingTransaction(null)} 
-          />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* SIDEBAR */}
+        <div className="lg:col-span-5 space-y-8">
+          <div className="p-[1px] bg-gradient-to-br from-accent to-transparent rounded-3xl">
+            <div className="bg-background rounded-[23px]">
+              <AddTransactionForm 
+                onAdded={fetchTransactions} 
+                editingTransaction={editingTransaction} 
+                onCancelEdit={() => setEditingTransaction(null)} 
+              />
+            </div>
+          </div>
           
           <div className="glass-card p-6">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-500 mb-6 border-b border-card-border pb-3">Overview</h2>
+            <h2 className="text-[10px] font-black tracking-widest uppercase text-gray-500 mb-6 flex items-center gap-2">
+              <span className="w-2 h-2 bg-accent rounded-full"></span> Spending Analytics
+            </h2>
             <TransactionChart summary={summary} />
-          </div>
-
-          <div className="glass-card p-6">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-500 mb-6 border-b border-card-border pb-3">Spending by Category</h2>
-            <CategoryChart transactions={filteredTransactions} />
+            <div className="mt-8">
+              <CategoryChart transactions={filteredTransactions} />
+            </div>
           </div>
 
           <BudgetLimits transactions={filteredTransactions} currency={currency} exchangeRate={exchangeRates[currency] || 1} initialBudgets={settings.category_budgets} />
-
           <SavingsGoal currentBalance={summary.balance} currency={currency} exchangeRate={exchangeRates[currency] || 1} initialGoal={settings.savings_goal} />
+          <PayAndInvoice currency={currency} onAdded={fetchTransactions} />
         </div>
 
-        {/* Right Column: Transaction List */}
+        {/* LEDGER */}
         <div className="lg:col-span-7">
-          <div className="glass-card p-6 h-full min-h-[500px]">
-            <h2 className="text-xs font-bold tracking-widest uppercase text-gray-500 mb-6 border-b border-card-border pb-3">Recent Transactions</h2>
-            {loading ? (
-              <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold text-center py-10">Loading entries...</p>
-            ) : filteredTransactions.length === 0 ? (
-              <p className="text-gray-500 text-[10px] uppercase tracking-widest font-bold text-center py-10">No entries found for this period.</p>
-            ) : (
-              <ul className="space-y-2">
-                {paginatedTransactions.map((tx) => (
-                  <li key={tx.id} className="group flex justify-between items-center p-4 border border-transparent border-b-card-border hover:border-card-border hover:bg-card-bg/30 rounded-xl transition-all duration-300">
-                    <div>
-                      <div className="flex items-center space-x-3 mb-1">
-                        <p className="font-bold text-sm text-foreground">{tx.category}</p>
-                        <span className="text-[9px] text-gray-500 uppercase tracking-widest bg-card border border-card-border px-2 py-0.5 rounded-full">{getLocalDateString(new Date(tx.created_at))}</span>
+          <div className="glass-card p-0 overflow-hidden border-accent/10">
+            <div className="p-6 border-b border-card-border bg-card/30">
+              <h2 className="text-[10px] font-black tracking-widest uppercase text-gray-400">Master Ledger</h2>
+            </div>
+            
+            <div className="divide-y divide-card-border">
+              {loading ? (
+                <div className="p-20 text-center animate-pulse text-[10px] font-bold uppercase tracking-widest">Decrypting Data...</div>
+              ) : paginatedTransactions.length === 0 ? (
+                <div className="p-20 text-center text-[10px] font-bold uppercase tracking-widest text-gray-600">No records in vault.</div>
+              ) : (
+                paginatedTransactions.map((tx) => (
+                  <div key={tx.id} className={`group flex justify-between items-center p-5 transition-colors ${editingTransaction?.id === tx.id ? 'bg-accent/10 border-l-4 border-accent' : 'hover:bg-accent/[0.02] border-l-4 border-transparent'}`}>
+                    <div className="flex gap-4 items-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'} ${editingTransaction?.id === tx.id ? 'ring-2 ring-accent ring-offset-2 ring-offset-background' : ''}`}>
+                        {tx.category?.charAt(0)}
                       </div>
-                      {tx.description && <p className="text-xs text-gray-400">{tx.description}</p>}
+                      <div>
+                        <p className="font-bold text-sm uppercase tracking-tight text-foreground">{tx.category}</p>
+                        <p className="text-[10px] text-gray-500 font-medium uppercase">{getLocalDateString(new Date(tx.created_at))} • {tx.description || 'No memo'}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-4">
-                      <div className={`font-medium text-lg tracking-tight ${tx.type === 'income' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                    <div className="text-right flex items-center gap-4">
+                      <div className={`font-mono text-lg ${tx.type === 'income' ? 'text-emerald-500' : 'text-foreground'}`}>
                         {tx.type === 'income' ? '+' : '-'}{formatAmount(parseFloat(tx.amount))}
                       </div>
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button onClick={() => {
-                          setEditingTransaction(tx);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        }} className="text-gray-400 hover:text-accent p-2 transition-colors" title="Edit">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                        </button>
-                        <button onClick={() => handleDelete(tx.id)} className="text-gray-400 hover:text-rose-500 p-2 transition-colors" title="Delete">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                      <div className={`flex gap-1 transition-opacity ${editingTransaction?.id === tx.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                        {editingTransaction?.id === tx.id ? (
+                          <button onClick={() => setEditingTransaction(null)} className="p-2 text-accent hover:text-rose-500" title="Cancel Edit"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                        ) : (
+                          <button onClick={() => { setEditingTransaction(tx); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="p-2 hover:text-accent" title="Edit Transaction"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg></button>
+                        )}
+                        <button onClick={() => handleDelete(tx.id)} className="p-2 hover:text-rose-500"><svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
                       </div>
                     </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                  </div>
+                ))
+              )}
+            </div>
 
-            {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-6 pt-6 border-t border-card-border">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  className="bg-card border border-card-border hover:border-accent disabled:hover:border-card-border disabled:opacity-30 text-foreground px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all"
-                >
-                  Previous
-                </button>
-                <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">
-                  Page {currentPage} / {totalPages}
-                </span>
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                  className="bg-card border border-card-border hover:border-accent disabled:hover:border-card-border disabled:opacity-30 text-foreground px-5 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all"
-                >
-                  Next
-                </button>
+              <div className="p-4 bg-card/20 flex justify-between items-center border-t border-card-border">
+                <button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} className="text-[9px] font-black uppercase tracking-tighter disabled:opacity-20 hover:text-accent">Prev Page</button>
+                <span className="text-[9px] font-black text-gray-500 uppercase tracking-widest">Entry {currentPage} of {totalPages}</span>
+                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} className="text-[9px] font-black uppercase tracking-tighter disabled:opacity-20 hover:text-accent">Next Page</button>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      {transactionToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 dark:bg-black/60 backdrop-blur-sm p-4">
+          <div className="glass-card bg-card p-8 max-w-sm w-full space-y-6 animate-in fade-in zoom-in duration-200 border border-rose-500/20 shadow-2xl shadow-rose-500/10">
+            <h3 className="text-sm font-black uppercase tracking-widest text-rose-500">Confirm Reversal</h3>
+            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+              Are you sure you want to permanently delete this transaction from the vault? This action cannot be undone.
+            </p>
+            <div className="flex gap-4 pt-4">
+              <button disabled={isDeleting} onClick={() => setTransactionToDelete(null)} className="flex-1 bg-card border border-card-border hover:border-accent text-foreground px-4 py-3 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all disabled:opacity-50">
+                Cancel
+              </button>
+              <button disabled={isDeleting} onClick={confirmDelete} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white px-4 py-3 rounded-full font-bold uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-rose-500/20 flex justify-center items-center gap-2 disabled:opacity-50">
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Confirm'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
