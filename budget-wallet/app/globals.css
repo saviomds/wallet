@@ -43,6 +43,24 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html.light {
+  --bg: #f5f4f0;
+  --bg-2: #eeede8;
+  --fg: #111111;
+  --muted: #555555;
+  --dim: #888888;
+  --line: rgba(0,0,0,.10);
+  --line-2: rgba(0,0,0,.18);
+  --card: rgba(255,255,255,.85);
+  --card-solid: #ffffff;
+  --accent-soft: rgba(212,175,55,.18);
+
+  --background: var(--bg);
+  --foreground: var(--fg);
+  --card-bg: var(--card);
+  --card-border: var(--line);
+}
+
 *, *::before, *::after { box-sizing: border-box; }
 
 html, body {
@@ -57,10 +75,17 @@ body {
   background:
     radial-gradient(1200px 600px at 80% -10%, rgba(212,175,55,.08), transparent 60%),
     radial-gradient(900px 500px at -10% 100%, rgba(167,139,250,.06), transparent 60%),
-    #050505;
+    var(--bg);
   min-height: 100vh;
   overflow-x: hidden;
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+html.light body {
+  background:
+    radial-gradient(1200px 600px at 80% -10%, rgba(212,175,55,.06), transparent 60%),
+    radial-gradient(900px 500px at -10% 100%, rgba(167,139,250,.04), transparent 60%),
+    #f5f4f0;
 }
 
 ::selection { background: var(--accent); color: #000; }
@@ -134,6 +159,12 @@ body {
 }
 .input:focus { border-color: var(--accent); background: rgba(212,175,55,.04); }
 .input::placeholder { color: var(--dim); }
+select.input option { background: var(--card-solid); color: var(--fg); }
+html.light .input { background: rgba(0,0,0,.04); }
+html.light .input:focus { background: rgba(212,175,55,.08); }
+html.light .sidebar { background: rgba(255,255,255,.85); border-right-color: rgba(0,0,0,.10); }
+html.light .nav-item:hover { background: rgba(0,0,0,.05); }
+html.light .nav-item.active { background: var(--accent-soft); }
 
 .label {
   font-size: 10px;

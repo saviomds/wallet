@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { toast } from '../../lib/toast';
+import ThemeToggle from '../ThemeToggle';
 
 // ─── 2FA section ─────────────────────────────────────────────────────────────
 
@@ -234,7 +235,7 @@ export default function SettingsPage({ ctx }) {
       {/* Preferences */}
       <div className="card">
         <div className="card-h"><h3>Preferences</h3></div>
-        <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           <div>
             <div className="label">Display currency</div>
             <select value={currency} onChange={e => setCurrency(e.target.value)} className="input" style={{ padding: '12px 14px' }}>
@@ -243,6 +244,11 @@ export default function SettingsPage({ ctx }) {
             <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
               Amounts are converted from MUR using live exchange rates.
             </div>
+          </div>
+          <div style={{ height: 1, background: 'var(--line)' }} />
+          <div>
+            <div className="label" style={{ marginBottom: 10 }}>Appearance</div>
+            <ThemeToggle />
           </div>
         </div>
       </div>

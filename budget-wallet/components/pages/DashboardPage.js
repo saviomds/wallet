@@ -1,5 +1,8 @@
 'use client';
 
+import ThemeToggle from '../ThemeToggle';
+import PWAInstall from '../PWAInstall';
+
 export default function DashboardPage({ ctx }) {
   const { summary, overallSummary, transactions, loading, formatAmount, navigate, creditScore, creditRating, session } = ctx;
 
@@ -27,18 +30,22 @@ export default function DashboardPage({ ctx }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
       {/* Topbar */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div>
           <div className="eyebrow" style={{ marginBottom: 4 }}>Welcome back</div>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, letterSpacing: '-.02em', textTransform: 'capitalize' }}>
             {userName}
           </h1>
         </div>
-        <div style={{ padding: '10px 14px', border: '1px solid var(--line)', borderRadius: 12, textAlign: 'right' }}>
-          <div className="eyebrow" style={{ marginBottom: 2 }}>Credit Score</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 20, fontWeight: 300 }}>{creditScore}</span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: creditRating.color }}>{creditRating.label}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <PWAInstall />
+          <ThemeToggle />
+          <div style={{ padding: '10px 14px', border: '1px solid var(--line)', borderRadius: 12, textAlign: 'right' }}>
+            <div className="eyebrow" style={{ marginBottom: 2 }}>Credit Score</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 20, fontWeight: 300 }}>{creditScore}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: creditRating.color }}>{creditRating.label}</span>
+            </div>
           </div>
         </div>
       </div>

@@ -23,6 +23,8 @@ export default function ThemeToggle() {
       const savedHover = localStorage.getItem('accentHover');
       if (savedAccent && savedHover) {
         setActiveAccent(savedAccent);
+        document.documentElement.style.setProperty('--accent', savedAccent);
+        document.documentElement.style.setProperty('--accent-2', savedHover);
         document.documentElement.style.setProperty('--accent-color', savedAccent);
         document.documentElement.style.setProperty('--accent-hover', savedHover);
       }
@@ -34,6 +36,8 @@ export default function ThemeToggle() {
     setActiveAccent(accent.color);
     localStorage.setItem('accentColor', accent.color);
     localStorage.setItem('accentHover', accent.hover);
+    document.documentElement.style.setProperty('--accent', accent.color);
+    document.documentElement.style.setProperty('--accent-2', accent.hover);
     document.documentElement.style.setProperty('--accent-color', accent.color);
     document.documentElement.style.setProperty('--accent-hover', accent.hover);
   };

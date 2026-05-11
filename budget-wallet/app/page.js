@@ -20,7 +20,7 @@ import BudgetsPage    from '../components/pages/BudgetsPage';
 import SavingsPage    from '../components/pages/SavingsPage';
 import SettingsPage   from '../components/pages/SettingsPage';
 
-const CURRENCIES = ['MUR','INR','USD','EUR','GBP','JPY','AUD','CAD','CHF','CNY','ZAR','AED'];
+const CURRENCIES = ['MUR','RWF','INR','USD','EUR','GBP','JPY','AUD','CAD','CHF','CNY','ZAR','AED'];
 
 // ─── Nav sections & icons ────────────────────────────────────────────────────
 
@@ -270,14 +270,12 @@ export default function App() {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
-      if (session) fetchTransactions();
-    });
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setSession(session);
-      if (session) fetchTransactions();
-      else setLoading(false);
+      if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+        if (session) fetchTransactions();
+        else setLoading(false);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
