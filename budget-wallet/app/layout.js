@@ -1,5 +1,4 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "../components/ThemeProvider";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -12,9 +11,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+});
+
 export const metadata = {
-  title: "Budget Wallet",
-  description: "Track your income and expenses effortlessly.",
+  title: "B1Overs Wallet",
+  description: "Institutional Grade B1Overs Finance.",
   manifest: "/manifest.json",
   icons: {
     icon: [
@@ -26,26 +32,23 @@ export const metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
-    title: "Budget Wallet",
+    statusBarStyle: "black-translucent",
+    title: "B1Overs Wallet",
   },
 };
 
 export const viewport = {
-  themeColor: "#111827",
+  themeColor: "#050505",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} h-full`}
     >
-      <body className="min-h-full flex flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          {children}
-        </ThemeProvider>
+      <body className="min-h-full">
+        {children}
       </body>
     </html>
   );

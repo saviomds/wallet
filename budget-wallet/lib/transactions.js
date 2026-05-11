@@ -90,7 +90,7 @@ export async function getUserSettings() {
   if (error && error.code !== 'PGRST116') { // PGRST116 is the "0 rows returned" error
     console.error('Error fetching settings:', error.message || error);
   }
-  return data || { savings_goal: 0, category_budgets: {} };
+  return data || { savings_goal: 0, category_budgets: {}, recurring_rules: [] };
 }
 
 export async function updateUserSettings(settings) {

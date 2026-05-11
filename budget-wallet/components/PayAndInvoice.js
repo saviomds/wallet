@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import { addTransaction } from '../lib/transactions';
+import { toast } from '../lib/toast';
 
 export default function PayAndInvoice({ currency, onAdded }) {
   const [recipient, setRecipient] = useState('');
@@ -15,10 +16,9 @@ export default function PayAndInvoice({ currency, onAdded }) {
   const handlePay = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
-      // Simulate a small network delay for UX
-      await new Promise(resolve => setTimeout(resolve, 600));
+      await new Promise((resolve) => setTimeout(resolve, 600));
 
       await addTransaction({
         amount: parseFloat(amount),
@@ -26,12 +26,13 @@ export default function PayAndInvoice({ currency, onAdded }) {
         category: 'Payment',
         description: `Invoice: ${recipient} - ${description}`,
       });
-      
+
       if (onAdded) onAdded();
       setInvoiceGenerated(true);
+      toast.success(`Paid ${recipient}`);
     } catch (error) {
       console.error('Payment failed', error);
-      alert('Failed to process payment.');
+      toast.error('Payment failed');
     } finally {
       setLoading(false);
     }
@@ -52,42 +53,46 @@ export default function PayAndInvoice({ currency, onAdded }) {
   const shareBeOneOfUs = `https://beoneofus.work/share?text=${invoiceText}`;
 
   const downloadPDF = () => {
-    const doc = new jsPDF();
-    const safeName = recipient.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    
-    const generateText = () => {
-      doc.setFontSize(22);
-      doc.text('INVOICE', 105, 25, null, null, 'center');
-      
-      doc.setFontSize(12);
-      doc.text(`From: B1OversWallet`, 20, 45);
-      doc.text(`To: ${recipient}`, 20, 55);
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 65);
-      
-      doc.text(`Description: ${description}`, 20, 85);
-      
-      doc.setFontSize(16);
-      doc.text(`Total Amount: ${currency} ${amount}`, 20, 105);
-      
-      doc.save(`invoice_${safeName}.pdf`);
-    };
+    try {
+      const doc = new jsPDF();
+      const safeName = recipient.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 
-    const img = new window.Image();
-    img.src = '/apple-touch-icon.png'; // Uses the existing icon in your public folder
-    img.onload = () => {
-      doc.addImage(img, 'PNG', 20, 12, 16, 16);
-      generateText();
-    };
-    img.onerror = () => {
-      generateText(); // Fallback if image fails to load
-    };
+      const generateText = () => {
+        doc.setFontSize(22);
+        doc.text('INVOICE', 105, 25, null, null, 'center');
+
+        doc.setFontSize(12);
+        doc.text(`From: B1OversWallet`, 20, 45);
+        doc.text(`To: ${recipient}`, 20, 55);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 65);
+
+        doc.text(`Description: ${description}`, 20, 85);
+
+        doc.setFontSize(16);
+        doc.text(`Total Amount: ${currency} ${amount}`, 20, 105);
+
+        doc.save(`invoice_${safeName}.pdf`);
+        toast.success('Invoice downloaded');
+      };
+
+      const img = new window.Image();
+      img.src = '/apple-touch-icon.png';
+      img.onload = () => {
+        doc.addImage(img, 'PNG', 20, 12, 16, 16);
+        generateText();
+      };
+      img.onerror = () => generateText();
+    } catch (err) {
+      console.error(err);
+      toast.error('Could not generate PDF');
+    }
   };
 
   return (
     <div className="glass-card p-6">
       <div className="flex justify-between items-center border-b border-card-border pb-3">
         <h2 className="text-[10px] font-black tracking-widest uppercase text-gray-500 flex items-center gap-2">
-          <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Pay & Invoice
+          <span className="w-2 h-2 bg-purple-500 rounded-full"></span> Pay &amp; Invoice
         </h2>
         <button onClick={() => setIsOpen(!isOpen)} className="text-[10px] text-accent hover:text-accent-hover uppercase tracking-widest font-bold transition-colors">
           {isOpen ? 'Close' : '+ New Payment'}
@@ -115,7 +120,7 @@ export default function PayAndInvoice({ currency, onAdded }) {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                Processing...
+                Processing…
               </>
             ) : 'Process Payment'}
           </button>
@@ -130,18 +135,12 @@ export default function PayAndInvoice({ currency, onAdded }) {
             </div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-emerald-500 mb-1">Payment Successful</h3>
             <p className="text-[10px] text-gray-400 mb-4">Invoice generated for {recipient}</p>
-            
+
             <p className="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-2 border-t border-card-border pt-4">Share Invoice</p>
             <div className="flex flex-col sm:flex-row justify-center gap-2">
-              <a href={shareEmail} className="flex-1 bg-background border border-card-border hover:border-accent text-foreground px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center">
-                Email
-              </a>
-              <a href={shareWhatsApp} target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#25D366] hover:bg-[#1DA851] text-white px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center">
-                WhatsApp
-              </a>
-              <a href={shareBeOneOfUs} target="_blank" rel="noopener noreferrer" className="flex-1 bg-accent hover:bg-accent-hover text-black px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center shadow-lg shadow-accent/20">
-                BeOneOfUs
-              </a>
+              <a href={shareEmail} className="flex-1 bg-background border border-card-border hover:border-accent text-foreground px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center">Email</a>
+              <a href={shareWhatsApp} target="_blank" rel="noopener noreferrer" className="flex-1 bg-[#25D366] hover:bg-[#1DA851] text-white px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center">WhatsApp</a>
+              <a href={shareBeOneOfUs} target="_blank" rel="noopener noreferrer" className="flex-1 bg-accent hover:bg-accent-hover text-black px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center shadow-lg shadow-accent/20">BeOneOfUs</a>
             </div>
             <button onClick={downloadPDF} className="w-full mt-2 bg-card border border-card-border hover:border-accent text-foreground px-3 py-2.5 rounded-full font-bold uppercase tracking-widest text-[9px] transition-all text-center">
               Download PDF
