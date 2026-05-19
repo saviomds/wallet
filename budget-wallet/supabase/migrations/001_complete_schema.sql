@@ -396,9 +396,13 @@ CREATE POLICY "Users manage own bill reminders"
 CREATE TABLE IF NOT EXISTS public.shared_wallets (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT        NOT NULL,
-  owner_id   UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  owner_id   UUID        REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure owner_id exists if the table was created by an older schema version
+ALTER TABLE public.shared_wallets
+  ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
 
 ALTER TABLE public.shared_wallets ENABLE ROW LEVEL SECURITY;
 
