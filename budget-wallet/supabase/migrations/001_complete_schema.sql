@@ -60,7 +60,7 @@
 -- Core of the app. Every income/expense entry, payment, and
 -- auto-posted recurring transaction lands here.
 
-CREATE TABLE public.transactions (
+CREATE TABLE IF NOT EXISTS public.transactions (
   id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   amount      NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
@@ -71,24 +71,28 @@ CREATE TABLE public.transactions (
   created_at  TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_transactions_user_id    ON public.transactions(user_id);
-CREATE INDEX idx_transactions_created_at ON public.transactions(created_at DESC);
-CREATE INDEX idx_transactions_type       ON public.transactions(type);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_id    ON public.transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON public.transactions(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transactions_type       ON public.transactions(type);
 
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own transactions" ON public.transactions;
 CREATE POLICY "Users can view own transactions"
   ON public.transactions FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own transactions" ON public.transactions;
 CREATE POLICY "Users can insert own transactions"
   ON public.transactions FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own transactions" ON public.transactions;
 CREATE POLICY "Users can update own transactions"
   ON public.transactions FOR UPDATE
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can delete own transactions" ON public.transactions;
 CREATE POLICY "Users can delete own transactions"
   ON public.transactions FOR DELETE
   USING (auth.uid() = user_id);
@@ -99,7 +103,7 @@ CREATE POLICY "Users can delete own transactions"
 -- limits, recurring rules (JSONB until Phase 2 normalization),
 -- and display currency preference.
 
-CREATE TABLE public.user_settings (
+CREATE TABLE IF NOT EXISTS public.user_settings (
   user_id            UUID          PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   savings_goal       NUMERIC(12,2) NOT NULL DEFAULT 0,
   category_budgets   JSONB         NOT NULL DEFAULT '{}',
@@ -110,14 +114,17 @@ CREATE TABLE public.user_settings (
 
 ALTER TABLE public.user_settings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own settings" ON public.user_settings;
 CREATE POLICY "Users can view own settings"
   ON public.user_settings FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert own settings" ON public.user_settings;
 CREATE POLICY "Users can insert own settings"
   ON public.user_settings FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can update own settings" ON public.user_settings;
 CREATE POLICY "Users can update own settings"
   ON public.user_settings FOR UPDATE
   USING (auth.uid() = user_id);
@@ -128,7 +135,7 @@ CREATE POLICY "Users can update own settings"
 -- transaction; this table persists the invoice record (recipient,
 -- PDF path, currency) that is otherwise lost after the session.
 
-CREATE TABLE public.invoices (
+CREATE TABLE IF NOT EXISTS public.invoices (
   id             UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   transaction_id UUID          REFERENCES public.transactions(id) ON DELETE SET NULL,
@@ -140,10 +147,11 @@ CREATE TABLE public.invoices (
   created_at     TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_invoices_user_id ON public.invoices(user_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_user_id ON public.invoices(user_id);
 
 ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can manage own invoices" ON public.invoices;
 CREATE POLICY "Users can manage own invoices"
   ON public.invoices FOR ALL
   USING (auth.uid() = user_id)
@@ -155,7 +163,7 @@ CREATE POLICY "Users can manage own invoices"
 -- JSONB in user_settings.recurring_rules; this normalized table
 -- supports future server-side auto-posting.
 
-CREATE TABLE public.recurring_rules (
+CREATE TABLE IF NOT EXISTS public.recurring_rules (
   id         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name       TEXT          NOT NULL,
@@ -168,11 +176,12 @@ CREATE TABLE public.recurring_rules (
   created_at TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_recurring_rules_user_id   ON public.recurring_rules(user_id);
-CREATE INDEX idx_recurring_rules_next_date ON public.recurring_rules(next_date);
+CREATE INDEX IF NOT EXISTS idx_recurring_rules_user_id   ON public.recurring_rules(user_id);
+CREATE INDEX IF NOT EXISTS idx_recurring_rules_next_date ON public.recurring_rules(next_date);
 
 ALTER TABLE public.recurring_rules ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own recurring rules" ON public.recurring_rules;
 CREATE POLICY "Users manage own recurring rules"
   ON public.recurring_rules FOR ALL
   USING (auth.uid() = user_id)
@@ -183,7 +192,7 @@ CREATE POLICY "Users manage own recurring rules"
 -- SharedPage already has a "Join Waitlist" form that currently
 -- only calls alert(). This table persists the email.
 
-CREATE TABLE public.waitlist (
+CREATE TABLE IF NOT EXISTS public.waitlist (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   email      TEXT        NOT NULL UNIQUE,
   feature    TEXT        NOT NULL DEFAULT 'shared_wallets',
@@ -192,6 +201,7 @@ CREATE TABLE public.waitlist (
 
 ALTER TABLE public.waitlist ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Anyone can join waitlist" ON public.waitlist;
 CREATE POLICY "Anyone can join waitlist"
   ON public.waitlist FOR INSERT
   WITH CHECK (true);
@@ -201,7 +211,7 @@ CREATE POLICY "Anyone can join waitlist"
 -- BudgetLimits component already fires 80% and 100% alerts as
 -- toasts. This table makes them persistent for audit and history.
 
-CREATE TABLE public.budget_alert_log (
+CREATE TABLE IF NOT EXISTS public.budget_alert_log (
   id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   category        TEXT          NOT NULL,
@@ -212,10 +222,11 @@ CREATE TABLE public.budget_alert_log (
   acknowledged_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_budget_alert_log_user_id ON public.budget_alert_log(user_id);
+CREATE INDEX IF NOT EXISTS idx_budget_alert_log_user_id ON public.budget_alert_log(user_id);
 
 ALTER TABLE public.budget_alert_log ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own budget alerts" ON public.budget_alert_log;
 CREATE POLICY "Users manage own budget alerts"
   ON public.budget_alert_log FOR ALL
   USING (auth.uid() = user_id)
@@ -227,7 +238,7 @@ CREATE POLICY "Users manage own budget alerts"
 -- This table snapshots it periodically so a trend chart can be
 -- built (Analytics page already has the chart slots).
 
-CREATE TABLE public.credit_score_history (
+CREATE TABLE IF NOT EXISTS public.credit_score_history (
   id          UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   score       INT           NOT NULL CHECK (score BETWEEN 300 AND 850),
@@ -238,11 +249,12 @@ CREATE TABLE public.credit_score_history (
   snapshot_at TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_credit_score_user_id     ON public.credit_score_history(user_id);
-CREATE INDEX idx_credit_score_snapshot_at ON public.credit_score_history(snapshot_at DESC);
+CREATE INDEX IF NOT EXISTS idx_credit_score_user_id     ON public.credit_score_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_credit_score_snapshot_at ON public.credit_score_history(snapshot_at DESC);
 
 ALTER TABLE public.credit_score_history ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view own credit score history" ON public.credit_score_history;
 CREATE POLICY "Users view own credit score history"
   ON public.credit_score_history FOR ALL
   USING (auth.uid() = user_id)
@@ -257,7 +269,7 @@ CREATE POLICY "Users view own credit score history"
 -- OAuth / JWT link to the user's BeOneOfUs account.
 -- Tokens must be hashed/encrypted before insert — never plaintext.
 
-CREATE TABLE public.beoneofus_connections (
+CREATE TABLE IF NOT EXISTS public.beoneofus_connections (
   id                 UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id            UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   beoneofus_user_id  TEXT        NOT NULL,
@@ -275,6 +287,7 @@ CREATE TABLE public.beoneofus_connections (
 
 ALTER TABLE public.beoneofus_connections ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own BeOneOfUs connection" ON public.beoneofus_connections;
 CREATE POLICY "Users manage own BeOneOfUs connection"
   ON public.beoneofus_connections FOR ALL
   USING (auth.uid() = user_id)
@@ -285,7 +298,7 @@ CREATE POLICY "Users manage own BeOneOfUs connection"
 -- Server-side tokens used to call the BeOneOfUs API on behalf
 -- of a user. Store only the SHA-256 hash, never the raw token.
 
-CREATE TABLE public.api_tokens (
+CREATE TABLE IF NOT EXISTS public.api_tokens (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name         TEXT        NOT NULL,
@@ -297,11 +310,12 @@ CREATE TABLE public.api_tokens (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_api_tokens_user_id    ON public.api_tokens(user_id);
-CREATE INDEX idx_api_tokens_token_hash ON public.api_tokens(token_hash);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_user_id    ON public.api_tokens(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_tokens_token_hash ON public.api_tokens(token_hash);
 
 ALTER TABLE public.api_tokens ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own API tokens" ON public.api_tokens;
 CREATE POLICY "Users manage own API tokens"
   ON public.api_tokens FOR ALL
   USING (auth.uid() = user_id)
@@ -312,7 +326,7 @@ CREATE POLICY "Users manage own API tokens"
 -- Synced snapshot of BeOneOfUs profile shown in the wallet UI.
 -- Refreshed on each login sync.
 
-CREATE TABLE public.wallet_profiles (
+CREATE TABLE IF NOT EXISTS public.wallet_profiles (
   user_id            UUID          PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   display_name       TEXT,
   avatar_url         TEXT,
@@ -326,6 +340,7 @@ CREATE TABLE public.wallet_profiles (
 
 ALTER TABLE public.wallet_profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own wallet profile" ON public.wallet_profiles;
 CREATE POLICY "Users manage own wallet profile"
   ON public.wallet_profiles FOR ALL
   USING (auth.uid() = user_id)
@@ -343,7 +358,7 @@ CREATE POLICY "Users manage own wallet profile"
 -- Bills category exists in transactions but has no due-date or
 -- paid/unpaid state. This table adds that tracking.
 
-CREATE TABLE public.bill_reminders (
+CREATE TABLE IF NOT EXISTS public.bill_reminders (
   id         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name       TEXT          NOT NULL,
@@ -358,11 +373,12 @@ CREATE TABLE public.bill_reminders (
   created_at TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_bill_reminders_user_id  ON public.bill_reminders(user_id);
-CREATE INDEX idx_bill_reminders_due_date ON public.bill_reminders(due_date);
+CREATE INDEX IF NOT EXISTS idx_bill_reminders_user_id  ON public.bill_reminders(user_id);
+CREATE INDEX IF NOT EXISTS idx_bill_reminders_due_date ON public.bill_reminders(due_date);
 
 ALTER TABLE public.bill_reminders ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own bill reminders" ON public.bill_reminders;
 CREATE POLICY "Users manage own bill reminders"
   ON public.bill_reminders FOR ALL
   USING (auth.uid() = user_id)
@@ -377,7 +393,7 @@ CREATE POLICY "Users manage own bill reminders"
 -- SharedPage is built (Coming Soon UI). Tables created now so
 -- wallet_id FK on transactions doesn't require a breaking change.
 
-CREATE TABLE public.shared_wallets (
+CREATE TABLE IF NOT EXISTS public.shared_wallets (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT        NOT NULL,
   owner_id   UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -386,6 +402,7 @@ CREATE TABLE public.shared_wallets (
 
 ALTER TABLE public.shared_wallets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Owners manage their shared wallet" ON public.shared_wallets;
 CREATE POLICY "Owners manage their shared wallet"
   ON public.shared_wallets FOR ALL
   USING (auth.uid() = owner_id)
@@ -393,17 +410,20 @@ CREATE POLICY "Owners manage their shared wallet"
 
 -- Now that shared_wallets exists, add the FK to transactions
 ALTER TABLE public.transactions
-  ADD CONSTRAINT fk_transactions_wallet
+  ADD CONSTRAINT IF NOT EXISTS fk_transactions_wallet
   FOREIGN KEY (wallet_id) REFERENCES public.shared_wallets(id) ON DELETE SET NULL;
 
-CREATE INDEX idx_transactions_wallet_id ON public.transactions(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON public.transactions(wallet_id);
 
 
 -- ── 13. wallet_members ──────────────────────────────────────────
 
-CREATE TYPE wallet_role AS ENUM ('owner', 'editor', 'viewer');
+DO $$ BEGIN
+  CREATE TYPE wallet_role AS ENUM ('owner', 'editor', 'viewer');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TABLE public.wallet_members (
+CREATE TABLE IF NOT EXISTS public.wallet_members (
   id        UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_id UUID        NOT NULL REFERENCES public.shared_wallets(id) ON DELETE CASCADE,
   user_id   UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -412,15 +432,17 @@ CREATE TABLE public.wallet_members (
   UNIQUE (wallet_id, user_id)
 );
 
-CREATE INDEX idx_wallet_members_wallet_id ON public.wallet_members(wallet_id);
-CREATE INDEX idx_wallet_members_user_id   ON public.wallet_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_members_wallet_id ON public.wallet_members(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_members_user_id   ON public.wallet_members(user_id);
 
 ALTER TABLE public.wallet_members ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Members can view their own memberships" ON public.wallet_members;
 CREATE POLICY "Members can view their own memberships"
   ON public.wallet_members FOR SELECT
   USING (user_id = auth.uid());
 
+DROP POLICY IF EXISTS "Owners can manage members" ON public.wallet_members;
 CREATE POLICY "Owners can manage members"
   ON public.wallet_members FOR ALL
   USING (
@@ -431,6 +453,7 @@ CREATE POLICY "Owners can manage members"
   );
 
 -- Allow shared wallet members to see that wallet's transactions
+DROP POLICY IF EXISTS "Shared wallet members can view wallet transactions" ON public.transactions;
 CREATE POLICY "Shared wallet members can view wallet transactions"
   ON public.transactions FOR SELECT
   USING (
@@ -444,7 +467,7 @@ CREATE POLICY "Shared wallet members can view wallet transactions"
 
 -- ── 14. wallet_invites ──────────────────────────────────────────
 
-CREATE TABLE public.wallet_invites (
+CREATE TABLE IF NOT EXISTS public.wallet_invites (
   id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   wallet_id   UUID        NOT NULL REFERENCES public.shared_wallets(id) ON DELETE CASCADE,
   invited_by  UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -456,11 +479,12 @@ CREATE TABLE public.wallet_invites (
   accepted_at TIMESTAMPTZ
 );
 
-CREATE INDEX idx_wallet_invites_token     ON public.wallet_invites(token);
-CREATE INDEX idx_wallet_invites_wallet_id ON public.wallet_invites(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_invites_token     ON public.wallet_invites(token);
+CREATE INDEX IF NOT EXISTS idx_wallet_invites_wallet_id ON public.wallet_invites(wallet_id);
 
 ALTER TABLE public.wallet_invites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Owners can manage invites" ON public.wallet_invites;
 CREATE POLICY "Owners can manage invites"
   ON public.wallet_invites FOR ALL
   USING (
@@ -470,6 +494,7 @@ CREATE POLICY "Owners can manage invites"
     )
   );
 
+DROP POLICY IF EXISTS "Anyone can read an invite by token" ON public.wallet_invites;
 CREATE POLICY "Anyone can read an invite by token"
   ON public.wallet_invites FOR SELECT
   USING (true);
@@ -478,7 +503,7 @@ CREATE POLICY "Anyone can read an invite by token"
 -- ── 15. wallet_transfers ────────────────────────────────────────
 -- Internal member-to-member transfers via BeOneOfUs username lookup.
 
-CREATE TABLE public.wallet_transfers (
+CREATE TABLE IF NOT EXISTS public.wallet_transfers (
   id                           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   sender_id                    UUID          NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
   recipient_beoneofus_username TEXT          NOT NULL,
@@ -495,16 +520,18 @@ CREATE TABLE public.wallet_transfers (
   created_at                   TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_wallet_transfers_sender_id    ON public.wallet_transfers(sender_id);
-CREATE INDEX idx_wallet_transfers_recipient_id ON public.wallet_transfers(recipient_id);
-CREATE INDEX idx_wallet_transfers_status       ON public.wallet_transfers(status);
+CREATE INDEX IF NOT EXISTS idx_wallet_transfers_sender_id    ON public.wallet_transfers(sender_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_transfers_recipient_id ON public.wallet_transfers(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_transfers_status       ON public.wallet_transfers(status);
 
 ALTER TABLE public.wallet_transfers ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view transfers they sent or received" ON public.wallet_transfers;
 CREATE POLICY "Users view transfers they sent or received"
   ON public.wallet_transfers FOR SELECT
   USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
 
+DROP POLICY IF EXISTS "Users can initiate transfers" ON public.wallet_transfers;
 CREATE POLICY "Users can initiate transfers"
   ON public.wallet_transfers FOR INSERT
   WITH CHECK (auth.uid() = sender_id);
@@ -513,7 +540,7 @@ CREATE POLICY "Users can initiate transfers"
 -- ── 16. mobile_money_accounts ───────────────────────────────────
 -- Linked Juice / MyT Money / Emtel Cash / Orange Money accounts.
 
-CREATE TABLE public.mobile_money_accounts (
+CREATE TABLE IF NOT EXISTS public.mobile_money_accounts (
   id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id      UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   provider     TEXT        NOT NULL
@@ -527,10 +554,11 @@ CREATE TABLE public.mobile_money_accounts (
   UNIQUE (user_id, provider, phone_number)
 );
 
-CREATE INDEX idx_mobile_money_accounts_user_id ON public.mobile_money_accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_mobile_money_accounts_user_id ON public.mobile_money_accounts(user_id);
 
 ALTER TABLE public.mobile_money_accounts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own mobile money accounts" ON public.mobile_money_accounts;
 CREATE POLICY "Users manage own mobile money accounts"
   ON public.mobile_money_accounts FOR ALL
   USING (auth.uid() = user_id)
@@ -539,7 +567,7 @@ CREATE POLICY "Users manage own mobile money accounts"
 
 -- ── 17. mobile_money_transactions ───────────────────────────────
 
-CREATE TABLE public.mobile_money_transactions (
+CREATE TABLE IF NOT EXISTS public.mobile_money_transactions (
   id                    UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   account_id            UUID          NOT NULL REFERENCES public.mobile_money_accounts(id) ON DELETE RESTRICT,
@@ -556,12 +584,13 @@ CREATE TABLE public.mobile_money_transactions (
   created_at            TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_mobile_money_tx_user_id    ON public.mobile_money_transactions(user_id);
-CREATE INDEX idx_mobile_money_tx_account_id ON public.mobile_money_transactions(account_id);
-CREATE INDEX idx_mobile_money_tx_status     ON public.mobile_money_transactions(status);
+CREATE INDEX IF NOT EXISTS idx_mobile_money_tx_user_id    ON public.mobile_money_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_mobile_money_tx_account_id ON public.mobile_money_transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_mobile_money_tx_status     ON public.mobile_money_transactions(status);
 
 ALTER TABLE public.mobile_money_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view own mobile money transactions" ON public.mobile_money_transactions;
 CREATE POLICY "Users view own mobile money transactions"
   ON public.mobile_money_transactions FOR ALL
   USING (auth.uid() = user_id)
@@ -572,7 +601,7 @@ CREATE POLICY "Users view own mobile money transactions"
 -- Bank accounts linked via Plaid / Salt Edge / Yodlee.
 -- access_token_encrypted must be AES-encrypted before insert.
 
-CREATE TABLE public.bank_connections (
+CREATE TABLE IF NOT EXISTS public.bank_connections (
   id                     UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   provider               TEXT        NOT NULL CHECK (provider IN ('plaid', 'salt_edge', 'yodlee')),
@@ -589,10 +618,11 @@ CREATE TABLE public.bank_connections (
   UNIQUE (user_id, provider, provider_connection_id)
 );
 
-CREATE INDEX idx_bank_connections_user_id ON public.bank_connections(user_id);
+CREATE INDEX IF NOT EXISTS idx_bank_connections_user_id ON public.bank_connections(user_id);
 
 ALTER TABLE public.bank_connections ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own bank connections" ON public.bank_connections;
 CREATE POLICY "Users manage own bank connections"
   ON public.bank_connections FOR ALL
   USING (auth.uid() = user_id)
@@ -601,7 +631,7 @@ CREATE POLICY "Users manage own bank connections"
 
 -- ── 19. bank_transactions ───────────────────────────────────────
 
-CREATE TABLE public.bank_transactions (
+CREATE TABLE IF NOT EXISTS public.bank_transactions (
   id                      UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id                 UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   connection_id           UUID          NOT NULL REFERENCES public.bank_connections(id) ON DELETE CASCADE,
@@ -618,12 +648,13 @@ CREATE TABLE public.bank_transactions (
   UNIQUE (connection_id, provider_transaction_id)
 );
 
-CREATE INDEX idx_bank_transactions_user_id       ON public.bank_transactions(user_id);
-CREATE INDEX idx_bank_transactions_connection_id ON public.bank_transactions(connection_id);
-CREATE INDEX idx_bank_transactions_date          ON public.bank_transactions(date DESC);
+CREATE INDEX IF NOT EXISTS idx_bank_transactions_user_id       ON public.bank_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_bank_transactions_connection_id ON public.bank_transactions(connection_id);
+CREATE INDEX IF NOT EXISTS idx_bank_transactions_date          ON public.bank_transactions(date DESC);
 
 ALTER TABLE public.bank_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view own bank transactions" ON public.bank_transactions;
 CREATE POLICY "Users view own bank transactions"
   ON public.bank_transactions FOR ALL
   USING (auth.uid() = user_id)
@@ -632,7 +663,7 @@ CREATE POLICY "Users view own bank transactions"
 
 -- ── 20. qr_payments ─────────────────────────────────────────────
 
-CREATE TABLE public.qr_payments (
+CREATE TABLE IF NOT EXISTS public.qr_payments (
   id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   transaction_id  UUID          REFERENCES public.transactions(id) ON DELETE SET NULL,
@@ -648,16 +679,18 @@ CREATE TABLE public.qr_payments (
   created_at      TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_qr_payments_user_id ON public.qr_payments(user_id);
-CREATE INDEX idx_qr_payments_status  ON public.qr_payments(status);
+CREATE INDEX IF NOT EXISTS idx_qr_payments_user_id ON public.qr_payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_qr_payments_status  ON public.qr_payments(status);
 
 ALTER TABLE public.qr_payments ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own QR payments" ON public.qr_payments;
 CREATE POLICY "Users manage own QR payments"
   ON public.qr_payments FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Payer can read QR payment to settle it" ON public.qr_payments;
 CREATE POLICY "Payer can read QR payment to settle it"
   ON public.qr_payments FOR SELECT
   USING (auth.uid() = paid_by_user_id);
@@ -671,7 +704,7 @@ CREATE POLICY "Payer can read QR payment to settle it"
 -- Per-user PIN for confirming high-value transactions.
 -- Store only the bcrypt hash — never the raw PIN.
 
-CREATE TABLE public.transaction_pins (
+CREATE TABLE IF NOT EXISTS public.transaction_pins (
   user_id         UUID        PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   pin_hash        TEXT        NOT NULL,
   failed_attempts INT         NOT NULL DEFAULT 0,
@@ -682,6 +715,7 @@ CREATE TABLE public.transaction_pins (
 
 ALTER TABLE public.transaction_pins ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own transaction PIN" ON public.transaction_pins;
 CREATE POLICY "Users manage own transaction PIN"
   ON public.transaction_pins FOR ALL
   USING (auth.uid() = user_id)
@@ -690,7 +724,7 @@ CREATE POLICY "Users manage own transaction PIN"
 
 -- ── 22. fraud_alerts ────────────────────────────────────────────
 
-CREATE TABLE public.fraud_alerts (
+CREATE TABLE IF NOT EXISTS public.fraud_alerts (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id        UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   transaction_id UUID        REFERENCES public.transactions(id) ON DELETE SET NULL,
@@ -705,11 +739,12 @@ CREATE TABLE public.fraud_alerts (
   created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_fraud_alerts_user_id  ON public.fraud_alerts(user_id);
-CREATE INDEX idx_fraud_alerts_resolved ON public.fraud_alerts(resolved);
+CREATE INDEX IF NOT EXISTS idx_fraud_alerts_user_id  ON public.fraud_alerts(user_id);
+CREATE INDEX IF NOT EXISTS idx_fraud_alerts_resolved ON public.fraud_alerts(resolved);
 
 ALTER TABLE public.fraud_alerts ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view own fraud alerts" ON public.fraud_alerts;
 CREATE POLICY "Users view own fraud alerts"
   ON public.fraud_alerts FOR SELECT
   USING (auth.uid() = user_id);
@@ -718,7 +753,7 @@ CREATE POLICY "Users view own fraud alerts"
 -- ── 23. audit_logs ──────────────────────────────────────────────
 -- Immutable security log — no UPDATE or DELETE policies.
 
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        REFERENCES auth.users(id) ON DELETE SET NULL,
   action     TEXT        NOT NULL,
@@ -728,16 +763,18 @@ CREATE TABLE public.audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_audit_logs_user_id    ON public.audit_logs(user_id);
-CREATE INDEX idx_audit_logs_action     ON public.audit_logs(action);
-CREATE INDEX idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id    ON public.audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action     ON public.audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
 
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view own audit log" ON public.audit_logs;
 CREATE POLICY "Users can view own audit log"
   ON public.audit_logs FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "System can insert audit log entries" ON public.audit_logs;
 CREATE POLICY "System can insert audit log entries"
   ON public.audit_logs FOR INSERT
   WITH CHECK (true);
@@ -749,7 +786,7 @@ CREATE POLICY "System can insert audit log entries"
 
 -- ── 24. subscriptions ───────────────────────────────────────────
 
-CREATE TABLE public.subscriptions (
+CREATE TABLE IF NOT EXISTS public.subscriptions (
   id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name              TEXT          NOT NULL,
@@ -766,11 +803,12 @@ CREATE TABLE public.subscriptions (
   created_at        TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_subscriptions_user_id           ON public.subscriptions(user_id);
-CREATE INDEX idx_subscriptions_next_billing_date ON public.subscriptions(next_billing_date);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id           ON public.subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_next_billing_date ON public.subscriptions(next_billing_date);
 
 ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own subscriptions" ON public.subscriptions;
 CREATE POLICY "Users manage own subscriptions"
   ON public.subscriptions FOR ALL
   USING (auth.uid() = user_id)
@@ -781,7 +819,7 @@ CREATE POLICY "Users manage own subscriptions"
 -- Full card numbers must NEVER be stored — processor token and
 -- last-4 mask only.
 
-CREATE TABLE public.virtual_cards (
+CREATE TABLE IF NOT EXISTS public.virtual_cards (
   id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   card_token      TEXT          NOT NULL UNIQUE,
@@ -796,10 +834,11 @@ CREATE TABLE public.virtual_cards (
   created_at      TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_virtual_cards_user_id ON public.virtual_cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_virtual_cards_user_id ON public.virtual_cards(user_id);
 
 ALTER TABLE public.virtual_cards ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own virtual cards" ON public.virtual_cards;
 CREATE POLICY "Users manage own virtual cards"
   ON public.virtual_cards FOR ALL
   USING (auth.uid() = user_id)
@@ -808,7 +847,7 @@ CREATE POLICY "Users manage own virtual cards"
 
 -- ── 26. ai_suggestions ──────────────────────────────────────────
 
-CREATE TABLE public.ai_suggestions (
+CREATE TABLE IF NOT EXISTS public.ai_suggestions (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type       TEXT        NOT NULL
@@ -822,11 +861,12 @@ CREATE TABLE public.ai_suggestions (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_ai_suggestions_user_id ON public.ai_suggestions(user_id);
-CREATE INDEX idx_ai_suggestions_type    ON public.ai_suggestions(type);
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_user_id ON public.ai_suggestions(user_id);
+CREATE INDEX IF NOT EXISTS idx_ai_suggestions_type    ON public.ai_suggestions(type);
 
 ALTER TABLE public.ai_suggestions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own AI suggestions" ON public.ai_suggestions;
 CREATE POLICY "Users manage own AI suggestions"
   ON public.ai_suggestions FOR ALL
   USING (auth.uid() = user_id)
@@ -835,7 +875,7 @@ CREATE POLICY "Users manage own AI suggestions"
 
 -- ── 27. crypto_wallets ──────────────────────────────────────────
 
-CREATE TABLE public.crypto_wallets (
+CREATE TABLE IF NOT EXISTS public.crypto_wallets (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   network       TEXT        NOT NULL,
@@ -846,10 +886,11 @@ CREATE TABLE public.crypto_wallets (
   UNIQUE (user_id, network, address)
 );
 
-CREATE INDEX idx_crypto_wallets_user_id ON public.crypto_wallets(user_id);
+CREATE INDEX IF NOT EXISTS idx_crypto_wallets_user_id ON public.crypto_wallets(user_id);
 
 ALTER TABLE public.crypto_wallets ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own crypto wallets" ON public.crypto_wallets;
 CREATE POLICY "Users manage own crypto wallets"
   ON public.crypto_wallets FOR ALL
   USING (auth.uid() = user_id)
@@ -858,7 +899,7 @@ CREATE POLICY "Users manage own crypto wallets"
 
 -- ── 28. crypto_transactions ─────────────────────────────────────
 
-CREATE TABLE public.crypto_transactions (
+CREATE TABLE IF NOT EXISTS public.crypto_transactions (
   id                UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   wallet_id         UUID          NOT NULL REFERENCES public.crypto_wallets(id) ON DELETE CASCADE,
@@ -875,11 +916,12 @@ CREATE TABLE public.crypto_transactions (
   UNIQUE (wallet_id, tx_hash)
 );
 
-CREATE INDEX idx_crypto_tx_user_id   ON public.crypto_transactions(user_id);
-CREATE INDEX idx_crypto_tx_wallet_id ON public.crypto_transactions(wallet_id);
+CREATE INDEX IF NOT EXISTS idx_crypto_tx_user_id   ON public.crypto_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_crypto_tx_wallet_id ON public.crypto_transactions(wallet_id);
 
 ALTER TABLE public.crypto_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users view own crypto transactions" ON public.crypto_transactions;
 CREATE POLICY "Users view own crypto transactions"
   ON public.crypto_transactions FOR ALL
   USING (auth.uid() = user_id)
@@ -888,7 +930,7 @@ CREATE POLICY "Users view own crypto transactions"
 
 -- ── 29. investment_portfolios ───────────────────────────────────
 
-CREATE TABLE public.investment_portfolios (
+CREATE TABLE IF NOT EXISTS public.investment_portfolios (
   id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id    UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   name       TEXT        NOT NULL,
@@ -898,10 +940,11 @@ CREATE TABLE public.investment_portfolios (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_investment_portfolios_user_id ON public.investment_portfolios(user_id);
+CREATE INDEX IF NOT EXISTS idx_investment_portfolios_user_id ON public.investment_portfolios(user_id);
 
 ALTER TABLE public.investment_portfolios ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own portfolios" ON public.investment_portfolios;
 CREATE POLICY "Users manage own portfolios"
   ON public.investment_portfolios FOR ALL
   USING (auth.uid() = user_id)
@@ -910,7 +953,7 @@ CREATE POLICY "Users manage own portfolios"
 
 -- ── 30. investment_holdings ─────────────────────────────────────
 
-CREATE TABLE public.investment_holdings (
+CREATE TABLE IF NOT EXISTS public.investment_holdings (
   id              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   portfolio_id    UUID          NOT NULL REFERENCES public.investment_portfolios(id) ON DELETE CASCADE,
   user_id         UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -927,11 +970,12 @@ CREATE TABLE public.investment_holdings (
   UNIQUE (portfolio_id, symbol)
 );
 
-CREATE INDEX idx_investment_holdings_portfolio_id ON public.investment_holdings(portfolio_id);
-CREATE INDEX idx_investment_holdings_user_id      ON public.investment_holdings(user_id);
+CREATE INDEX IF NOT EXISTS idx_investment_holdings_portfolio_id ON public.investment_holdings(portfolio_id);
+CREATE INDEX IF NOT EXISTS idx_investment_holdings_user_id      ON public.investment_holdings(user_id);
 
 ALTER TABLE public.investment_holdings ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own holdings" ON public.investment_holdings;
 CREATE POLICY "Users manage own holdings"
   ON public.investment_holdings FOR ALL
   USING (auth.uid() = user_id)
@@ -940,7 +984,7 @@ CREATE POLICY "Users manage own holdings"
 
 -- ── 31. investment_transactions ─────────────────────────────────
 
-CREATE TABLE public.investment_transactions (
+CREATE TABLE IF NOT EXISTS public.investment_transactions (
   id         UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   holding_id UUID          NOT NULL REFERENCES public.investment_holdings(id) ON DELETE CASCADE,
   user_id    UUID          NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -954,12 +998,13 @@ CREATE TABLE public.investment_transactions (
   created_at TIMESTAMPTZ   NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_investment_tx_holding_id ON public.investment_transactions(holding_id);
-CREATE INDEX idx_investment_tx_user_id    ON public.investment_transactions(user_id);
-CREATE INDEX idx_investment_tx_date       ON public.investment_transactions(date DESC);
+CREATE INDEX IF NOT EXISTS idx_investment_tx_holding_id ON public.investment_transactions(holding_id);
+CREATE INDEX IF NOT EXISTS idx_investment_tx_user_id    ON public.investment_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_investment_tx_date       ON public.investment_transactions(date DESC);
 
 ALTER TABLE public.investment_transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users manage own investment transactions" ON public.investment_transactions;
 CREATE POLICY "Users manage own investment transactions"
   ON public.investment_transactions FOR ALL
   USING (auth.uid() = user_id)
