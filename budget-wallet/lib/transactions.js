@@ -28,7 +28,7 @@ export async function getTransactions() {
     .order('created_at', { ascending: false }); // Newest first
 
   if (error) {
-    console.error('Error fetching transactions:', error);
+    console.error('Error fetching transactions:', error.message, '| code:', error.code, '| details:', error.details, '| hint:', error.hint);
     throw error;
   }
   return data;

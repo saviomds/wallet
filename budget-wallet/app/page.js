@@ -168,7 +168,7 @@ export default function App() {
         await processRecurringRules(settingsData.recurring_rules || []);
       }
     } catch (err) {
-      console.error(err);
+      console.error('fetchTransactions failed:', err?.message ?? err?.code ?? err);
       toast.error('Could not load data');
     } finally {
       setLoading(false);
