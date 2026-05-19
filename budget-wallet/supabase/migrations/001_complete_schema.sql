@@ -409,9 +409,12 @@ CREATE POLICY "Owners manage their shared wallet"
   WITH CHECK (auth.uid() = owner_id);
 
 -- Now that shared_wallets exists, add the FK to transactions
-ALTER TABLE public.transactions
-  ADD CONSTRAINT IF NOT EXISTS fk_transactions_wallet
-  FOREIGN KEY (wallet_id) REFERENCES public.shared_wallets(id) ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE public.transactions
+    ADD CONSTRAINT fk_transactions_wallet
+    FOREIGN KEY (wallet_id) REFERENCES public.shared_wallets(id) ON DELETE SET NULL;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_transactions_wallet_id ON public.transactions(wallet_id);
 
