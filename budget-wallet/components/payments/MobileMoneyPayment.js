@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 
-export default function MobileMoneyPayment({ amount, currency, onSuccess, onError }) {
+export default function MobileMoneyPayment({ authToken, amount, currency, onSuccess, onError }) {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
@@ -14,7 +14,10 @@ export default function MobileMoneyPayment({ amount, currency, onSuccess, onErro
     try {
       const res = await fetch('/api/payments/mtn', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({ phone, amount, currency }),
       });
       const data = await res.json();

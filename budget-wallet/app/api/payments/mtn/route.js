@@ -1,10 +1,33 @@
+import { requireUser } from '../../../../lib/serverSupabase';
+
 export async function POST(request) {
+  const auth = await requireUser(request);
+  if (auth.error) {
+    return auth.error;
+  }
+
   if (!process.env.MTN_SUBSCRIPTION_KEY || !process.env.MTN_API_USER || !process.env.MTN_API_KEY) {
     return Response.json({ error: 'MTN MoMo not configured. Add MTN_SUBSCRIPTION_KEY, MTN_API_USER, MTN_API_KEY to .env.local' }, { status: 503 });
   }
 
   try {
-    const { phone, amount, currency } = await request.json();
+    const body = await request.json();
+    const phone = String(body?.phone || '').replace(/\D/g, '');
+    const amount = Number(body?.amount);
+    const currency = String(body?.currency || 'EUR').trim().toUpperCase();
+
+    if (!/^\d{8,15}$/.test(phone)) {
+      return Response.json({ error: 'Invalid phone number' }, { status: 400 });
+    }
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      return Response.json({ error: 'Invalid amount' }, { status: 400 });
+    }
+
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      return Response.json({ error: 'Invalid currency' }, { status: 400 });
+    }
+
     const base = process.env.MTN_BASE_URL || 'https://sandbox.momodeveloper.mtn.com';
     const env = process.env.MTN_ENVIRONMENT || 'sandbox';
 
@@ -31,10 +54,10 @@ export async function POST(request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        amount: String(Math.round(parseFloat(amount))),
-        currency: currency || 'EUR',
+        amount: String(Math.round(amount)),
+        currency,
         externalId: referenceId,
-        payer: { partyIdType: 'MSISDN', partyId: phone.replace(/\D/g, '') },
+        payer: { partyIdType: 'MSISDN', partyId: phone },
         payerMessage: 'B1Overs Wallet Payment',
         payeeNote: 'Payment via B1Overs Wallet',
       }),

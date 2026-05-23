@@ -4,7 +4,7 @@ import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
 
-export default function PayPalPayment({ amount, currency, onSuccess, onError }) {
+export default function PayPalPayment({ authToken, amount, currency, onSuccess, onError }) {
   if (!CLIENT_ID) {
     return (
       <div style={{ padding: 16, background: 'rgba(251,113,133,.06)', border: '1px solid rgba(251,113,133,.2)', borderRadius: 12, fontSize: 12, color: 'var(--rose)' }}>
@@ -24,7 +24,10 @@ export default function PayPalPayment({ amount, currency, onSuccess, onError }) 
         createOrder={async () => {
           const res = await fetch('/api/payments/paypal/create-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
             body: JSON.stringify({ amount, currency: ppCurrency }),
           });
           const { orderId, error } = await res.json();
@@ -34,7 +37,10 @@ export default function PayPalPayment({ amount, currency, onSuccess, onError }) 
         onApprove={async (data) => {
           const res = await fetch('/api/payments/paypal/capture-order', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
             body: JSON.stringify({ orderId: data.orderID }),
           });
           const detail = await res.json();

@@ -1,3 +1,5 @@
+import { requireUser } from '../../../../../lib/serverSupabase';
+
 async function getPayPalToken() {
   const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
   const creds = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString('base64');
@@ -11,12 +13,23 @@ async function getPayPalToken() {
 }
 
 export async function POST(request) {
+  const auth = await requireUser(request);
+  if (auth.error) {
+    return auth.error;
+  }
+
   if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
     return Response.json({ error: 'PayPal not configured' }, { status: 503 });
   }
 
   try {
-    const { orderId } = await request.json();
+    const body = await request.json();
+    const orderId = String(body?.orderId || '').trim();
+
+    if (!orderId) {
+      return Response.json({ error: 'Invalid orderId' }, { status: 400 });
+    }
+
     const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
     const token = await getPayPalToken();
 

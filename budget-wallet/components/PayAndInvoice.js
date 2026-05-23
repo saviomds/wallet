@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
 import { jsPDF } from 'jspdf';
-import { addTransaction } from '../lib/transactions';
 import { toast } from '../lib/toast';
 
 const StripePayment      = dynamic(() => import('./payments/StripePayment'),      { ssr: false });
@@ -54,29 +53,52 @@ const METHODS = [
   },
 ];
 
-export default function PayAndInvoice({ currency, onAdded }) {
-  const [method, setMethod]           = useState('card');
-  const [recipient, setRecipient]     = useState('');
-  const [amount, setAmount]           = useState('');
+export default function PayAndInvoice({ currency, onAdded, session }) {
+  const [method, setMethod] = useState('card');
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [paying, setPaying]           = useState(false);
-  const [success, setSuccess]         = useState(false);
+  const [paying, setPaying] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const accessToken = session?.access_token || '';
 
   const detailsComplete = recipient.trim() && parseFloat(amount) > 0 && description.trim();
 
   const handleSuccess = async () => {
+    if (!accessToken) {
+      toast.error('Your session expired. Please sign in again.');
+      setPaying(false);
+      return;
+    }
+
     try {
-      await addTransaction({
-        amount: parseFloat(amount),
-        type: 'expense',
-        category: 'Payment',
-        description: `${METHODS.find(m => m.id === method)?.label} · ${recipient} · ${description}`,
+      const res = await fetch('/api/payments/record', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          currency,
+          recipient,
+          description,
+          method,
+        }),
       });
+
+      const data = await res.json();
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Could not record payment');
+      }
+
       if (onAdded) onAdded();
-    } catch {}
-    toast.success(`Payment to ${recipient} completed`);
-    setPaying(false);
-    setSuccess(true);
+      toast.success(`Payment to ${recipient} completed`);
+      setPaying(false);
+      setSuccess(true);
+    } catch (error) {
+      toast.error(error?.message || 'Payment completed but could not be saved');
+    }
   };
 
   const handleError = (msg) => {
@@ -101,7 +123,7 @@ export default function PayAndInvoice({ currency, onAdded }) {
       doc.setFontSize(22);
       doc.text('PAYMENT RECEIPT', 105, 25, null, null, 'center');
       doc.setFontSize(12);
-      doc.text(`From: B1Overs Wallet`, 20, 45);
+      doc.text('From: B1Overs Wallet', 20, 45);
       doc.text(`To: ${recipient}`, 20, 55);
       doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 65);
       doc.text(`Method: ${methodLabel}`, 20, 75);
@@ -115,7 +137,6 @@ export default function PayAndInvoice({ currency, onAdded }) {
     }
   };
 
-  // ── Success screen ───────────────────────────────────────────────────────────
   if (success) {
     const invoiceText = `Payment Receipt%0A%0ATo: ${recipient}%0AAmount: ${currency} ${amount}%0ADescription: ${description}%0ADate: ${new Date().toLocaleDateString()}`;
     return (
@@ -123,7 +144,7 @@ export default function PayAndInvoice({ currency, onAdded }) {
         <div className="card-b" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, textAlign: 'center', padding: '32px 24px' }}>
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(16,185,129,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="var(--emerald)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
-              <path d="M20 6L9 17l-5-5"/>
+              <path d="M20 6L9 17l-5-5" />
             </svg>
           </div>
           <div>
@@ -148,11 +169,8 @@ export default function PayAndInvoice({ currency, onAdded }) {
     );
   }
 
-  // ── Payment form ─────────────────────────────────────────────────────────────
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-      {/* Details */}
       <div className="card">
         <div className="card-h"><h3>Payment details</h3></div>
         <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -171,15 +189,14 @@ export default function PayAndInvoice({ currency, onAdded }) {
         </div>
       </div>
 
-      {/* Method selection — always visible */}
       <div className="card">
         <div className="card-h"><h3>Payment method</h3></div>
         <div className="card-b" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {METHODS.map(m => (
               <button
                 key={m.id}
+                type="button"
                 onClick={() => { setMethod(m.id); setPaying(false); }}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
@@ -200,31 +217,34 @@ export default function PayAndInvoice({ currency, onAdded }) {
 
           <div style={{ height: 1, background: 'var(--line)' }} />
 
-          {/* Pay button — opens the provider UI */}
           {!paying && (
             <button
               className="btn btn-primary btn-block"
-              disabled={!detailsComplete}
-              onClick={() => setPaying(true)}
-              style={{ opacity: detailsComplete ? 1 : 0.4 }}
+              disabled={!detailsComplete || !accessToken}
+              onClick={() => {
+                if (!accessToken) {
+                  toast.error('Please sign in again to continue.');
+                  return;
+                }
+                setPaying(true);
+              }}
+              style={{ opacity: detailsComplete && accessToken ? 1 : 0.4 }}
             >
-              {!detailsComplete ? 'Fill in details above to continue' : `Pay with ${METHODS.find(m => m.id === method)?.label}`}
+              {!detailsComplete ? 'Fill in details above to continue' : !accessToken ? 'Sign in again to continue' : `Pay with ${METHODS.find(m => m.id === method)?.label}`}
             </button>
           )}
 
-          {/* Provider UI — shown after clicking Pay */}
           {paying && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {method === 'card'   && <StripePayment      amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
-              {method === 'paypal' && <PayPalPayment      amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
-              {method === 'mobile' && <MobileMoneyPayment amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
-              {method === 'bank'   && <FlutterwavePayment amount={amount} currency={currency} recipient={recipient} description={description} onSuccess={handleSuccess} onError={handleError} />}
+              {method === 'card' && <StripePayment authToken={accessToken} amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
+              {method === 'paypal' && <PayPalPayment authToken={accessToken} amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
+              {method === 'mobile' && <MobileMoneyPayment authToken={accessToken} amount={amount} currency={currency} onSuccess={handleSuccess} onError={handleError} />}
+              {method === 'bank' && <FlutterwavePayment authToken={accessToken} amount={amount} currency={currency} recipient={recipient} description={description} onSuccess={handleSuccess} onError={handleError} />}
               <button onClick={() => setPaying(false)} style={{ background: 'none', border: 'none', color: 'var(--muted)', fontSize: 11, cursor: 'pointer', letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700 }}>
                 ← Change method
               </button>
             </div>
           )}
-
         </div>
       </div>
     </div>

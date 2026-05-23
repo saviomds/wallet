@@ -20,7 +20,7 @@ const CARD_STYLE = {
   },
 };
 
-function StripeForm({ amount, currency, onSuccess, onError }) {
+function StripeForm({ authToken, amount, currency, onSuccess, onError }) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
@@ -32,7 +32,10 @@ function StripeForm({ amount, currency, onSuccess, onError }) {
     try {
       const res = await fetch('/api/payments/stripe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authToken}`,
+        },
         body: JSON.stringify({ amount, currency }),
       });
       const { clientSecret, error: serverError } = await res.json();
@@ -63,7 +66,7 @@ function StripeForm({ amount, currency, onSuccess, onError }) {
   );
 }
 
-export default function StripePayment({ amount, currency, onSuccess, onError }) {
+export default function StripePayment({ authToken, amount, currency, onSuccess, onError }) {
   if (!stripePromise) {
     return (
       <div style={{ padding: 16, background: 'rgba(251,113,133,.06)', border: '1px solid rgba(251,113,133,.2)', borderRadius: 12, fontSize: 12, color: 'var(--rose)' }}>
@@ -73,7 +76,7 @@ export default function StripePayment({ amount, currency, onSuccess, onError }) 
   }
   return (
     <Elements stripe={stripePromise}>
-      <StripeForm amount={amount} currency={currency} onSuccess={onSuccess} onError={onError} />
+      <StripeForm authToken={authToken} amount={amount} currency={currency} onSuccess={onSuccess} onError={onError} />
     </Elements>
   );
 }
