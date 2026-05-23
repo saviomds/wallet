@@ -26,7 +26,7 @@ function FlutterwaveCheckout({ amount, currency, recipient, description, onSucce
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ padding: '12px 14px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 12, fontSize: 12 }}>
+      <div style={{ padding: '12px 14px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 12, fontSize: 12 }}>
         Opens a secure Flutterwave window supporting cards, bank transfer, and mobile money.
       </div>
       <button
@@ -57,7 +57,7 @@ export default function FlutterwavePayment(props) {
 
 function NotConfigured({ label, envKey }) {
   return (
-    <div style={{ padding: '14px 16px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+    <div style={{ padding: '14px 16px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
       <strong style={{ color: 'var(--fg)' }}>{label}</strong> not configured yet — add{' '}
       <code style={{ color: 'var(--accent)', fontSize: 11 }}>{envKey}</code> to <code style={{ fontSize: 11 }}>.env.local</code> to activate.
     </div>

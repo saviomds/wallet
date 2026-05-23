@@ -4,11 +4,11 @@ import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 
 const accents = [
-  { name: 'Gold', color: '#D4AF37', hover: '#b5952f' },
-  { name: 'Platinum', color: '#E5E4E2', hover: '#c5c4c2' },
-  { name: 'Emerald', color: '#10b981', hover: '#059669' },
-  { name: 'Sapphire', color: '#3b82f6', hover: '#2563eb' },
-  { name: 'Amethyst', color: '#8b5cf6', hover: '#7c3aed' }
+  { name: 'Blue',     color: '#155dfc', hover: '#2b7fff' },
+  { name: 'Indigo',   color: '#615fff', hover: '#4f39f6' },
+  { name: 'Emerald',  color: '#00d492', hover: '#009966' },
+  { name: 'Violet',   color: '#a684ff', hover: '#7f22fe' },
+  { name: 'Rose',     color: '#ff6467', hover: '#e7000b' },
 ];
 
 export default function ThemeToggle() {

@@ -34,7 +34,7 @@ export default function MobileMoneyPayment({ authToken, amount, currency, onSucc
   if (pending) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14, textAlign: 'center' }}>
-        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(212,175,55,.12)', border: '1px solid rgba(212,175,55,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'rgba(21,93,252,.12)', border: '1px solid rgba(21,93,252,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto' }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
             <rect x="5" y="2" width="14" height="20" rx="2" /><path d="M12 18h.01"/>
           </svg>
@@ -70,7 +70,7 @@ export default function MobileMoneyPayment({ authToken, amount, currency, onSucc
           Include country code without the + sign. Rwanda: 250, Uganda: 256, Ghana: 233
         </div>
       </div>
-      <div style={{ padding: '12px 14px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 12, fontSize: 12 }}>
+      <div style={{ padding: '12px 14px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 12, fontSize: 12 }}>
         A payment prompt for <strong>{currency} {parseFloat(amount).toLocaleString()}</strong> will be sent to your phone.
       </div>
       <button type="submit" disabled={loading || !phone} className="btn btn-primary btn-block">

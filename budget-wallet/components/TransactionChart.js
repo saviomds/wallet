@@ -15,8 +15,8 @@ export default function TransactionChart({ summary }) {
     datasets: [
       {
         data: [summary.income, summary.expenses],
-        backgroundColor: ['#D4AF37', '#333333'], // Gold and Dark Sleek Gray
-        hoverBackgroundColor: ['#b5952f', '#1f1f1f'],
+        backgroundColor: ['#155dfc', '#364153'],
+        hoverBackgroundColor: ['#2b7fff', '#1e2939'],
         borderWidth: 0, // Looks cleaner without a border in dark mode
       },
     ],

@@ -189,7 +189,7 @@ export default function RecurringPage({ ctx }) {
       )}
 
       {/* Info note */}
-      <div style={{ padding: '14px 16px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+      <div style={{ padding: '14px 16px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
         <strong style={{ color: 'var(--accent)' }}>How it works:</strong> Rules are stored in your account settings. Automatic posting is coming — for now, use rules as a reminder and post transactions manually from the Add page.
       </div>
     </div>

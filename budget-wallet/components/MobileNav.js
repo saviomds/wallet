@@ -68,7 +68,7 @@ export default function MobileNav({ currentPage, onNavigate }) {
             onClick={e => e.stopPropagation()}
             style={{
               position: 'relative', width: '100%',
-              background: '#0c0c0c', border: '1px solid var(--line-2)',
+              background: '#101828', border: '1px solid var(--line-2)',
               borderBottom: 'none', borderRadius: '24px 24px 0 0',
               padding: '20px 20px 36px', animation: 'fadeIn .2s ease both',
             }}
@@ -86,7 +86,7 @@ export default function MobileNav({ currentPage, onNavigate }) {
                   onClick={() => go(id)}
                   style={{
                     background: currentPage === id ? 'var(--accent-soft)' : 'rgba(255,255,255,.03)',
-                    border: `1px solid ${currentPage === id ? 'rgba(212,175,55,.3)' : 'var(--line)'}`,
+                    border: `1px solid ${currentPage === id ? 'rgba(21,93,252,.35)' : 'var(--line)'}`,
                     borderRadius: 14, padding: '14px 14px', textAlign: 'left', cursor: 'pointer',
                   }}
                 >

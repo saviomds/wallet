@@ -37,7 +37,7 @@ export default function CategoryChart({ transactions = [] }) {
       {
         label: 'Total Spent',
         data: sortedCategories.map((cat) => categoryTotals[cat]),
-        backgroundColor: '#D4AF37', // Gold 
+        backgroundColor: '#155dfc',
         borderRadius: 2,
       },
     ],
@@ -48,8 +48,8 @@ export default function CategoryChart({ transactions = [] }) {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } }, // Hide legend since it's self-explanatory
     scales: {
-      y: { beginAtZero: true, ticks: { color: '#888' }, grid: { color: 'rgba(150, 150, 150, 0.2)' } },
-      x: { ticks: { color: '#888' }, grid: { display: false } },
+      y: { beginAtZero: true, ticks: { color: '#99a1af' }, grid: { color: 'rgba(54,65,83,.25)' } },
+      x: { ticks: { color: '#99a1af' }, grid: { display: false } },
     },
   };
 

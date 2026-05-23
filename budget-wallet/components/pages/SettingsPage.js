@@ -146,7 +146,7 @@ function TwoFactorSection() {
                 Open <strong style={{ color: 'var(--fg)' }}>Google Authenticator</strong>, <strong style={{ color: 'var(--fg)' }}>Authy</strong>, or any TOTP app and scan this QR code.
               </div>
               <div className="eyebrow" style={{ marginBottom: 4 }}>Manual entry key</div>
-              <div className="mono" style={{ fontSize: 12, letterSpacing: '.15em', color: 'var(--accent)', wordBreak: 'break-all', padding: '8px 10px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 8 }}>
+              <div className="mono" style={{ fontSize: 12, letterSpacing: '.15em', color: 'var(--accent)', wordBreak: 'break-all', padding: '8px 10px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 8 }}>
                 {secret}
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function SettingsPage({ ctx }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 52, height: 52, borderRadius: 16,
-              background: 'var(--accent-soft)', border: '1px solid rgba(212,175,55,.3)',
+              background: 'var(--accent-soft)', border: '1px solid rgba(21,93,252,.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 20, fontWeight: 700, color: 'var(--accent)', flexShrink: 0,
             }}>

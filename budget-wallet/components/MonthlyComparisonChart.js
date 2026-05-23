@@ -53,8 +53,8 @@ export default function MonthlyComparisonChart({ transactions = [] }) {
   const data = {
     labels: months.map(m => m.label),
     datasets: [
-      { label: 'Income',   data: incomeData,  backgroundColor: 'rgba(16,185,129,.65)',  borderRadius: 4 },
-      { label: 'Expenses', data: expenseData, backgroundColor: 'rgba(212,175,55,.65)',  borderRadius: 4 },
+      { label: 'Income',   data: incomeData,  backgroundColor: 'rgba(0,212,146,.65)',   borderRadius: 4 },
+      { label: 'Expenses', data: expenseData, backgroundColor: 'rgba(21,93,252,.65)',   borderRadius: 4 },
     ],
   };
 
@@ -62,11 +62,11 @@ export default function MonthlyComparisonChart({ transactions = [] }) {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'bottom', labels: { color: '#8a8a8a', boxWidth: 12, padding: 16 } },
+      legend: { position: 'bottom', labels: { color: '#99a1af', boxWidth: 12, padding: 16 } },
     },
     scales: {
-      x: { ticks: { color: '#5a5a5a' }, grid: { display: false } },
-      y: { beginAtZero: true, ticks: { color: '#5a5a5a' }, grid: { color: 'rgba(255,255,255,.05)' } },
+      x: { ticks: { color: '#6a7282' }, grid: { display: false } },
+      y: { beginAtZero: true, ticks: { color: '#6a7282' }, grid: { color: 'rgba(54,65,83,.25)' } },
     },
   };
 

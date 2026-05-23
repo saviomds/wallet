@@ -75,7 +75,7 @@ export default function SharedPage({ ctx }) {
       </div>
 
       {/* Roadmap note */}
-      <div style={{ padding: '14px 16px', background: 'rgba(212,175,55,.06)', border: '1px solid rgba(212,175,55,.2)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
+      <div style={{ padding: '14px 16px', background: 'rgba(21,93,252,.07)', border: '1px solid rgba(21,93,252,.22)', borderRadius: 12, fontSize: 12, color: 'var(--muted)', lineHeight: 1.6 }}>
         <strong style={{ color: 'var(--accent)' }}>Roadmap:</strong> Shared wallets require a backend update to support multi-user tables, invite tokens, and role enforcement. This is tracked as a priority feature on the B1Overs roadmap.
       </div>
     </div>
