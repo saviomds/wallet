@@ -1,23 +1,25 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 const PAGES = [
-  { nav: 'Dashboard', expectText: 'Quick Actions' },
-  { nav: 'Analytics', expectText: 'Analytics' },
-  { nav: 'Add Transaction', expectText: 'Add Transaction' },
-  { nav: 'Ledger', expectText: 'Master Ledger' },
-  { nav: 'Pay & Invoice', expectText: 'Pay & Invoice' },
-  { nav: 'Recurring', expectText: 'Recurring' },
-  { nav: 'Budget Limits', expectText: 'Budget Limits' },
-  { nav: 'Savings Goal', expectText: 'Savings Goal' },
-  { nav: 'Shared Wallets', expectText: 'Shared Wallets' },
-  { nav: 'Settings', expectText: 'Settings' },
+  { route: 'dashboard', selector: 'text', expectText: 'Quick Actions' },
+  { route: 'analytics', selector: 'h1', expectText: 'Analytics' },
+  { route: 'add', selector: 'h1', expectText: 'Add Transaction' },
+  { route: 'ledger', selector: 'h1', expectText: 'Master Ledger' },
+  { route: 'pay', selector: 'h1', expectText: 'Pay & Invoice' },
+  { route: 'recurring', selector: 'h1', expectText: 'Recurring' },
+  { route: 'budgets', selector: 'h1', expectText: 'Budget Limits' },
+  { route: 'savings', selector: 'h1', expectText: 'Savings Goal' },
+  { route: 'shared', selector: 'h1', expectText: 'Shared Wallets' },
+  { route: 'settings', selector: 'h1', expectText: 'Settings' },
 ];
 
 for (const p of PAGES) {
-  test(`e2e route ${p.nav} shows ${p.expectText}`, async ({ page }) => {
-    // Load the test-only e2e route which renders the component with a mock ctx
-    const slug = p.nav.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/,'').replace(/^-+/,'');
-    await page.goto(`/e2e/${slug}`);
-    await expect(page.getByText(p.expectText, { exact: false })).toBeVisible();
+  test(`e2e route ${p.route} shows ${p.expectText}`, async ({ page }) => {
+    await page.goto(`/e2e/${p.route}`);
+    if (p.selector === 'text') {
+      await expect(page.getByText(p.expectText, { exact: true })).toBeVisible();
+      return;
+    }
+    await expect(page.locator(p.selector).filter({ hasText: p.expectText })).toBeVisible();
   });
 }

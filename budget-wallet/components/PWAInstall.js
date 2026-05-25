@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 export default function PWAInstall() {
   const [prompt, setPrompt] = useState(null);
-  const [installed, setInstalled] = useState(false);
+  const [installed, setInstalled] = useState(() => (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches));
 
   useEffect(() => {
     const handler = (e) => {
@@ -12,11 +12,7 @@ export default function PWAInstall() {
       setPrompt(e);
     };
     window.addEventListener('beforeinstallprompt', handler);
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setInstalled(true);
-    }
-
+    // installed is initialized from matchMedia; no need to setState synchronously here
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 

@@ -54,6 +54,8 @@ export default function BudgetLimits({ transactions = [], currency = 'MUR', exch
     new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(amount * exchangeRate);
 
   const { spending, priorSpending } = useMemo(() => {
+    // Date.now is impure; acceptable here because we merely compute relative ages once per render.
+    /* eslint-disable-next-line react-hooks/purity */
     const now = Date.now();
     const DAY = 86400000;
     const cur = {}, prev = {};

@@ -4,7 +4,17 @@ import ThemeToggle from '../ThemeToggle';
 import PWAInstall from '../PWAInstall';
 
 export default function DashboardPage({ ctx }) {
-  const { summary, overallSummary, transactions, loading, formatAmount, navigate, creditScore, creditRating, session } = ctx;
+  const {
+    summary,
+    overallSummary,
+    transactions,
+    loading,
+    formatAmount,
+    navigate,
+    creditScore,
+    creditRating = { label: 'Unknown', color: 'var(--muted)' },
+    session,
+  } = ctx;
 
   const recent = [...transactions]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))

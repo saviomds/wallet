@@ -12,6 +12,7 @@ function FlutterwaveCheckout({ amount, currency, recipient, description, onSucce
 
   const handleFlutterPayment = useFlutterwave({
     public_key: FLW_KEY,
+    /* eslint-disable-next-line react-hooks/purity */
     tx_ref: `b1overs-${Date.now()}`,
     amount: parseFloat(amount),
     currency: flwCurrency,

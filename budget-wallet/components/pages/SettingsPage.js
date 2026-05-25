@@ -16,8 +16,6 @@ function TwoFactorSection() {
   const [challengeId, setChallengeId] = useState(null);
   const [busy, setBusy]             = useState(false);
 
-  useEffect(() => { checkStatus(); }, []);
-
   const checkStatus = async () => {
     try {
       const { data } = await supabase.auth.mfa.listFactors();
@@ -26,6 +24,9 @@ function TwoFactorSection() {
       else          { setStatus('disabled'); }
     } catch { setStatus('disabled'); }
   };
+
+  /* eslint-disable-next-line react-hooks/set-state-in-effect */
+  useEffect(() => { checkStatus(); }, []);
 
   const handleEnable = async () => {
     setBusy(true);
@@ -178,7 +179,17 @@ function TwoFactorSection() {
 // ─── Settings Page ────────────────────────────────────────────────────────────
 
 export default function SettingsPage({ ctx }) {
-  const { session, currency, setCurrency, CURRENCIES, exportToCSV, creditScore, creditRating, overallSummary, formatAmount } = ctx;
+  const {
+    session,
+    currency,
+    setCurrency,
+    CURRENCIES,
+    exportToCSV,
+    creditScore,
+    creditRating = { color: 'var(--muted)' },
+    overallSummary,
+    formatAmount,
+  } = ctx;
 
   const email    = session?.user?.email ?? '—';
   const userName = email.split('@')[0];

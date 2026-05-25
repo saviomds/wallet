@@ -1,15 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const STORAGE_KEY = 'bw_onboarding_dismissed_v1';
 
 export default function OnboardingChecklist({ transactions, settings }) {
-  const [dismissed, setDismissed] = useState(true); // assume dismissed until we read storage
-
-  useEffect(() => {
-    setDismissed(localStorage.getItem(STORAGE_KEY) === '1');
-  }, []);
+  const [dismissed, setDismissed] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return localStorage.getItem(STORAGE_KEY) === '1';
+  });
 
   const dismiss = () => {
     localStorage.setItem(STORAGE_KEY, '1');

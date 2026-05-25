@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // ignore bundled vendor files
+    "public/*.js",
+    "public/workbox-*.js",
   ]),
 ]);
 

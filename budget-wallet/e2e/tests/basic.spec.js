@@ -1,6 +1,6 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
-test('home page loads', async ({ page, baseURL }) => {
+test('home page loads', async ({ page }) => {
   const response = await page.goto('/');
   expect(response && response.status()).toBeLessThan(400);
 });

@@ -3,7 +3,7 @@
 import BudgetLimits from '../BudgetLimits';
 
 export default function BudgetsPage({ ctx }) {
-  const { transactions, currency, exchangeRates, settings } = ctx;
+  const { transactions, currency, exchangeRates = { USD: 1 }, settings } = ctx;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 640 }}>
       <div>

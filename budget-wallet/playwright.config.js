@@ -10,7 +10,7 @@ const config = {
     trace: 'on-first-retry',
   },
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run start -- -p 3000',
     port: 3000,
     reuseExistingServer: !process.env.CI,
   },

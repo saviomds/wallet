@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+import { test, expect } from '@playwright/test';
 
 test('pay page shows form and pay button state', async ({ page }) => {
   await page.goto('/e2e/pay');

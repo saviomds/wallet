@@ -41,7 +41,7 @@ export default function SharedPage({ ctx }) {
         </p>
 
         {/* Early access form */}
-        <div style={{ display: 'flex', gap: 10, maxWidth: 400, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
+          <div style={{ display: 'flex', gap: 10, maxWidth: 400, margin: '0 auto', flexWrap: 'wrap', justifyContent: 'center' }}>
           <input
             className="input"
             placeholder="your@email.com"
@@ -52,7 +52,7 @@ export default function SharedPage({ ctx }) {
           />
           <button
             className="btn btn-primary"
-            onClick={() => { if (email) { setEmail(''); alert('You\'re on the list!'); } }}
+              onClick={() => { if (email) { setEmail(''); alert('You are on the list!'); } }}
             style={{ flex: '0 0 auto' }}
           >
             Join Waitlist
@@ -62,7 +62,7 @@ export default function SharedPage({ ctx }) {
 
       {/* Feature grid */}
       <div>
-        <div className="eyebrow" style={{ marginBottom: 14 }}>What's coming</div>
+        <div className="eyebrow" style={{ marginBottom: 14 }}>What is coming</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
           {FEATURES.map(f => (
             <div key={f.title} style={{ padding: '18px 16px', background: 'var(--card)', border: '1px solid var(--line)', borderRadius: 14 }}>

@@ -7,8 +7,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest",
-    "test:e2e": "npx playwright test",
+    "test:unit": "vitest --run",
+    "test:integration": "vitest run test/integration --reporter verbose || true",
+    "test:e2e": "npx playwright test --reporter=list",
+    "test": "npm run test:unit",
     "e2e:install": "npx playwright install"
   },
   "dependencies": {

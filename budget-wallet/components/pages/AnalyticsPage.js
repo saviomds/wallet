@@ -5,7 +5,7 @@ import CategoryChart         from '../CategoryChart';
 import DailySpendingChart    from '../DailySpendingChart';
 import MonthlyComparisonChart from '../MonthlyComparisonChart';
 
-export default function AnalyticsPage({ ctx }) {
+export default function AnalyticsPage({ ctx = {} }) {
   const {
     transactions, filteredTransactions, summary, overallSummary,
     searchQuery, setSearchQuery,
@@ -13,6 +13,7 @@ export default function AnalyticsPage({ ctx }) {
     currency, setCurrency, CURRENCIES,
     formatAmount, exportToCSV, creditScore, creditRating,
   } = ctx;
+  const creditColor = creditRating?.color || 'var(--muted)';
 
   const savingsRate = overallSummary.income > 0
     ? ((overallSummary.income - overallSummary.expenses) / overallSummary.income * 100).toFixed(1)
@@ -26,7 +27,7 @@ export default function AnalyticsPage({ ctx }) {
   const METRICS = [
     { label: 'Savings Rate',         value: `${savingsRate}%`,                    color: savingsRate >= 20 ? 'var(--emerald)' : savingsRate >= 0 ? 'var(--yellow)' : 'var(--rose)' },
     { label: 'Avg Expense',          value: formatAmount(avgExpense),              color: 'var(--muted)' },
-    { label: 'Credit Score',         value: String(creditScore),                   color: creditRating.color },
+    { label: 'Credit Score',         value: String(creditScore),                   color: creditColor },
     { label: 'Income / Expense',     value: overallSummary.expenses > 0 ? `${(overallSummary.income / overallSummary.expenses).toFixed(2)}x` : '—', color: 'var(--blue)' },
   ];
 
