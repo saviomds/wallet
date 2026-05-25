@@ -34,11 +34,11 @@
 - [ ] Test that the manifest and install flow work on mobile and desktop.
 
 ## Quality and Testing
-- [ ] Add unit tests for transaction summary and credit-score logic.
-- [ ] Add integration tests for API payment routes.
-- [ ] Add end-to-end tests for the auth and payment flows using sandbox providers.
-- [ ] Add a GitHub Actions workflow to run lint and tests on pull requests.
-- [ ] Add formatting and stronger lint scripts to `package.json`.
+ - [ ] Add unit tests for transaction summary and credit-score logic.
+ - [x] Add integration tests for API payment routes.
+ - [ ] Add end-to-end tests for the auth and payment flows using sandbox providers.
+ - [x] Add a GitHub Actions workflow to run lint and tests on pull requests.
+ - [ ] Add formatting and stronger lint scripts to `package.json`.
 
 ## Documentation and Operations
 - [ ] Expand `README.md` with setup, env vars, payments setup, and deployment steps.
@@ -52,3 +52,27 @@
 - [ ] Add feature flags for enabling or disabling payment providers by region.
 - [ ] Add basic analytics for feature usage and payment funnel tracking.
 - [ ] Add a Dockerfile or reproducible dev environment notes.
+
+## Test Plan (what to test after all updates)
+
+- **Auth & Access:** Verify all payment API routes require authentication; unauthorized requests return 401/403.
+- **Input Validation:** Send malformed/edge-case payloads (amount=0, negative, bad currency, invalid phone) and ensure 400 responses with safe error messages.
+- **Rate Limiting:** Simulate rapid repeated requests from same IP/user to payment routes and confirm 429 responses and `Retry-After` header.
+- **Idempotency (client header + server store):**
+	- Repeat a create-payment request with the same `Idempotency-Key` and confirm only one provider-side intent is created and repeated calls return the original result.
+	- Confirm expired idempotency entries allow a new intent after TTL.
+- **Duplicate-record protection:** Attempt to record the same payment twice (same user/amount/description within window) and confirm the second attempt does not create a duplicate transaction.
+- **Provider Integration (sandbox):**
+	- Stripe: create PaymentIntent, confirm `clientSecret` returned and capture flow works in sandbox.
+	- PayPal: create + capture orders end-to-end in sandbox.
+	- MTN / Flutterwave: simulate sandbox request-to-pay and confirm pending -> success flows.
+- **Database Persistence:** Confirm `transactions` and `invoices` rows are created with correct fields and RLS prevents cross-user access.
+- **Error Handling & Logging:** Force provider errors and confirm server returns sanitized errors and logs full details (without leaking secrets) to server logs.
+- **Webhook Reconciliation (once implemented):** Send signed webhook events to the webhook endpoints and confirm idempotent processing and DB reconciliation.
+- **UI End-to-End:** Use an E2E tool (Cypress/Playwright) to run user flows: login, create payment, complete provider flow, see recorded transaction in UI.
+- **PWA & Offline:** Test installability, service worker caching, and offline behavior for read and safe write fallback.
+- **Security Tests:** Verify CSP/HSTS headers, ensure no sensitive env or secrets are leaked to client, and validate Supabase RLS policies with direct DB access attempts.
+- **Performance & Load (basic):** Run a small load-test against payment endpoints to observe rate-limiter behavior and error rates.
+- **Upgrade & Migrations:** Test DB migrations on a staging copy to ensure schema changes (invoices/transactions) apply cleanly.
+
+Include tests as unit, integration, and E2E where appropriate; prefer sandbox provider accounts for payment integration tests.

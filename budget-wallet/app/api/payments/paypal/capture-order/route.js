@@ -1,4 +1,5 @@
 import { requireUser } from '../../../../../lib/serverSupabase';
+import { isRateLimited } from '../../../../../lib/rateLimiter';
 
 async function getPayPalToken() {
   const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
@@ -13,6 +14,10 @@ async function getPayPalToken() {
 }
 
 export async function POST(request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+  const rl = isRateLimited(`paypal:capture:${ip}`, 20, 60_000);
+  if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
+
   const auth = await requireUser(request);
   if (auth.error) {
     return auth.error;

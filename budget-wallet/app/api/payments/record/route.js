@@ -9,6 +9,11 @@ export async function POST(request) {
   }
 
   try {
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+    const { isRateLimited } = await import('../../../../lib/rateLimiter');
+    const rl = isRateLimited(`record:${ip}`, 30, 60_000);
+    if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
+
     const body = await request.json();
     const amount = Number(body?.amount);
     const currency = String(body?.currency || 'USD').trim().toUpperCase();
@@ -37,6 +42,22 @@ export async function POST(request) {
     }
 
     const paymentDescription = `${method} · ${recipient} · ${description}`;
+
+    // Duplicate-check: avoid inserting the same payment twice within a short window
+    const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+    const { data: existing } = await auth.supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', auth.user.id)
+      .eq('amount', amount)
+      .eq('category', 'Payment')
+      .eq('description', paymentDescription)
+      .gte('created_at', twoMinutesAgo)
+      .limit(1);
+
+    if (existing && existing.length) {
+      return Response.json({ transaction: existing[0], invoice: null });
+    }
 
     const { data: transaction, error: transactionError } = await auth.supabase
       .from('transactions')

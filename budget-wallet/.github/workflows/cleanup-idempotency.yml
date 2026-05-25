@@ -1,0 +1,19 @@
+name: Cleanup idempotency keys
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # daily at 03:00 UTC
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call cleanup endpoint
+        env:
+          ADMIN_CRON_SECRET: ${{ secrets.ADMIN_CRON_SECRET }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$ADMIN_CRON_SECRET" ]; then
+            echo "BASE_URL or ADMIN_CRON_SECRET not set"; exit 1; fi
+          curl -sSf -X POST "$BASE_URL/api/admin/cleanup-idempotency" -H "x-admin-secret: $ADMIN_CRON_SECRET" | jq || true

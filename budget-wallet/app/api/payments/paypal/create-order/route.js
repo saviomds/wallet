@@ -1,4 +1,5 @@
 import { requireUser } from '../../../../../lib/serverSupabase';
+import { isRateLimited } from '../../../../../lib/rateLimiter';
 
 async function getPayPalToken() {
   const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
@@ -28,6 +29,10 @@ function parsePaymentInput(body) {
 }
 
 export async function POST(request) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+  const rl = isRateLimited(`paypal:create:${ip}`, 10, 60_000);
+  if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
+
   const auth = await requireUser(request);
   if (auth.error) {
     return auth.error;
@@ -38,12 +43,16 @@ export async function POST(request) {
   }
 
   try {
-    const payload = parsePaymentInput(await request.json());
+    const body = await request.json();
+    const payload = parsePaymentInput(body);
     if (payload.error) {
       return Response.json({ error: payload.error }, { status: 400 });
     }
 
     const { amount, currency } = payload;
+    const clientTxn = String(body?.client_transaction_id || body?.clientTxnId || '').trim();
+    const description = String(body?.description || '').trim();
+    const recipient = String(body?.recipient || '').trim();
     const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
     const token = await getPayPalToken();
 
@@ -56,7 +65,12 @@ export async function POST(request) {
       headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         intent: 'CAPTURE',
-        purchase_units: [{ amount: { currency_code: ppCurrency, value: amount.toFixed(2) } }],
+        purchase_units: [{
+          reference_id: `${auth.user.id}:${clientTxn}`,
+          description: description || undefined,
+          custom_id: clientTxn || undefined,
+          amount: { currency_code: ppCurrency, value: amount.toFixed(2) },
+        }],
       }),
     });
     const data = await res.json();
