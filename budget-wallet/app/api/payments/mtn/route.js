@@ -13,7 +13,7 @@ export async function POST(request) {
 
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const rl = isRateLimited(`mtn:${ip}`, 8, 60_000);
+    const rl = await isRateLimited(`mtn:${ip}`, 8, 60_000);
     if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
 
     const body = await request.json();

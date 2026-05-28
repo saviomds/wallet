@@ -11,7 +11,7 @@ export async function POST(request) {
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
     const { isRateLimited } = await import('../../../../lib/rateLimiter');
-    const rl = isRateLimited(`record:${ip}`, 30, 60_000);
+    const rl = await isRateLimited(`record:${ip}`, 30, 60_000);
     if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
 
     const body = await request.json();

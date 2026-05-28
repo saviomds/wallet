@@ -21,7 +21,7 @@ function parsePaymentInput(body) {
 export async function POST(request) {
   try {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-    const rl = isRateLimited(`stripe:${ip}`, 10, 60_000);
+    const rl = await isRateLimited(`stripe:${ip}`, 10, 60_000);
     if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
 
     const auth = await requireUser(request);

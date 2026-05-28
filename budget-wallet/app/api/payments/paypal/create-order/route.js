@@ -1,5 +1,6 @@
 import { requireUser } from '../../../../../lib/serverSupabase';
 import { isRateLimited } from '../../../../../lib/rateLimiter';
+import { getIdempotencyDb, setIdempotencyDb } from '../../../../../lib/idempotencyDb';
 
 async function getPayPalToken() {
   const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
@@ -30,7 +31,7 @@ function parsePaymentInput(body) {
 
 export async function POST(request) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-  const rl = isRateLimited(`paypal:create:${ip}`, 10, 60_000);
+  const rl = await isRateLimited(`paypal:create:${ip}`, 10, 60_000);
   if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
 
   const auth = await requireUser(request);
@@ -56,6 +57,15 @@ export async function POST(request) {
     const base = process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com';
     const token = await getPayPalToken();
 
+    // Support idempotency via header and a server-side lookup
+    const idempotencyKey = (request.headers.get('idempotency-key') || request.headers.get('Idempotency-Key') || '').trim() || undefined;
+    if (idempotencyKey) {
+      const cached = await getIdempotencyDb(auth.supabase, auth.user.id, idempotencyKey);
+      if (cached && cached.orderId) {
+        return Response.json(cached);
+      }
+    }
+
     // PayPal supports a limited set of currencies; fall back to USD
     const supported = ['AUD','BRL','CAD','CNY','CZK','DKK','EUR','HKD','HUF','ILS','JPY','MYR','MXN','TWD','NZD','NOK','PHP','PLN','GBP','SGD','SEK','CHF','THB','USD'];
     const ppCurrency = supported.includes(currency) ? currency : 'USD';
@@ -74,6 +84,13 @@ export async function POST(request) {
       }),
     });
     const data = await res.json();
+    if (idempotencyKey) {
+      try {
+        await setIdempotencyDb(auth.supabase, auth.user.id, idempotencyKey, { orderId: data.id }, 5 * 60 * 1000);
+      } catch (e) {
+        // don't fail the request if caching fails
+      }
+    }
     return Response.json({ orderId: data.id });
   } catch (err) {
     return Response.json({ error: err.message }, { status: 500 });

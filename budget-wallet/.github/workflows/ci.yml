@@ -28,8 +28,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Run unit tests
-        run: npm test
+      - name: Run unit tests (repo-only)
+        run: npx vitest run "test/**/*.test.js" --reporter verbose
 
   e2e:
     needs: unit-tests
@@ -75,7 +75,7 @@ jobs:
   integration-tests:
     name: Integration Tests (conditional)
     runs-on: ubuntu-latest
-    if: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY != '' && secrets.TEST_API_SECRET != '' && secrets.NEXT_PUBLIC_SUPABASE_URL != '' && secrets.BASE_URL != '' }}
+    needs: unit-tests
     steps:
       - uses: actions/checkout@v4
 
@@ -114,9 +114,9 @@ jobs:
             sleep 1
           done
 
-      - name: Run integration tests
+      - name: Run integration tests (against CI-built app)
         env:
-          BASE_URL: ${{ secrets.BASE_URL }}
+          BASE_URL: http://127.0.0.1:3000
           TEST_API_SECRET: ${{ secrets.TEST_API_SECRET }}
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

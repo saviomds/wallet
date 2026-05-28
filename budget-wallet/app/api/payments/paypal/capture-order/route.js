@@ -15,7 +15,7 @@ async function getPayPalToken() {
 
 export async function POST(request) {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
-  const rl = isRateLimited(`paypal:capture:${ip}`, 20, 60_000);
+  const rl = await isRateLimited(`paypal:capture:${ip}`, 20, 60_000);
   if (!rl.allowed) return Response.json({ error: 'Too many requests' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfter) } });
 
   const auth = await requireUser(request);

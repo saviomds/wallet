@@ -9,9 +9,13 @@ export async function getIdempotencyDb(supabase, userId, key) {
   if (error || !data) return null;
   if (data.expires_at && new Date(data.expires_at) < new Date()) {
     // expired: remove and return null
-    await supabase.from('idempotency_keys').delete().eq('user_id', userId).eq('key', key);
+    try { await supabase.from('idempotency_keys').delete().eq('user_id', userId).eq('key', key); } catch {}
     return null;
   }
+  try {
+    const { logInfo } = await import('./logging');
+    logInfo('idempotency:get', 'cache-hit', { userId, key });
+  } catch {}
   return data.response || null;
 }
 
@@ -24,5 +28,10 @@ export async function setIdempotencyDb(supabase, userId, key, response, ttlMs = 
     response: response || null,
     expires_at: expiresAt,
   };
-  await supabase.from('idempotency_keys').upsert(payload, { onConflict: ['user_id', 'key'] });
+  try {
+    await supabase.from('idempotency_keys').upsert(payload, { onConflict: ['user_id', 'key'] });
+    try { const { logInfo } = await import('./logging'); logInfo('idempotency:set', 'cached', { userId, key }); } catch {}
+  } catch (e) {
+    try { const { logError } = await import('./logging'); logError('idempotency:set', 'db-fail', { userId, key, err: e?.message }); } catch {}
+  }
 }
